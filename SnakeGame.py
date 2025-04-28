@@ -16,6 +16,13 @@ COLS = 12
 ROWS = 10
 GRID_LENGTH = 150
 
+# Snake variables
+snakePos = [0, 0, 0]
+snakeLength = 2
+snakeAngle = 0
+snakeSpeed = 2
+snakeColor = (1, 0, 0)
+
 
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
     glColor3f(1,1,1)
@@ -39,6 +46,70 @@ def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
     glPopMatrix()
     glMatrixMode(GL_MODELVIEW)
 
+def levelEasy():
+    tile_size = GRID_LENGTH
+    rows = ROWS
+    cols = COLS
+
+    glPushMatrix()
+    glTranslatef(-cols * tile_size / 2, -rows * tile_size / 2, 0)
+
+    for i in range(rows):
+        for j in range(cols):
+            # Alternate colors
+            if (i + j) % 2 == 0:
+                glColor3f(0.5, 0.5, 0.5)
+            else:
+                glColor3f(1, 1, 1)
+
+            # Draw a tile
+            glBegin(GL_QUADS)
+            glVertex3f(j * tile_size, i * tile_size, 0)
+            glVertex3f((j + 1) * tile_size, i * tile_size, 0)
+            glVertex3f((j + 1) * tile_size, (i + 1) * tile_size, 0)
+            glVertex3f(j * tile_size, (i + 1) * tile_size, 0)
+            glEnd()
+
+    glPopMatrix()
+
+def drawSnake():
+    glPushMatrix()
+
+    # Snake Position
+    glTranslatef(snakePos[0], snakePos[1], snakePos[2])
+    glRotatef(snakeAngle, 0, 0, 1)
+
+    for i in range(snakeLength):
+        if i == 0:
+            glColor3f(0.6, 0, 0)
+        else:
+            glColor3f(snakeColor[0], snakeColor[1], snakeColor[2])
+        glTranslatef(0, i * 50, 0)
+        gluSphere(gluNewQuadric(), 30, 10, 10)
+
+    glPopMatrix()
+
+def snakeForwardMovement():
+    global snakePos, snakeAngle, snakeLength, snakeSpeed
+
+    # Boundaries
+    min_x = -COLS * GRID_LENGTH / 2 + 50
+    max_x = COLS * GRID_LENGTH / 2 - 50
+    min_y = -ROWS * GRID_LENGTH / 2 + 50
+    max_y = ROWS * GRID_LENGTH / 2 - 50
+
+    # Snake Movement
+    snakePos[0] -= snakeSpeed * math.sin(math.radians(-snakeAngle))
+    snakePos[1] -= snakeSpeed * math.cos(math.radians(snakeAngle))
+
+    if snakePos[0] < min_x:
+        snakePos[0] = min_x
+    if snakePos[0] > max_x:
+        snakePos[0] = max_x
+    if snakePos[1] < min_y:
+        snakePos[1] = min_y
+    if snakePos[1] > max_y:
+        snakePos[1] = max_y
 
 
 def specialKeyListener(key, x, y):
@@ -71,21 +142,27 @@ def mouseListener(button, state, x, y):
         pass
 
 def keyboardListener(key, x, y):
-        # Move forward (W key)
-        if key == b'w':
-            pass
+    global snakePos, snakeAngle, snakeLength, snakeSpeed
 
-        # Move backward (S key)
-        if key == b's':
-            pass
+    # Move forward (W key)
+    if key == b'w':
+        pass
 
-        # Rotate gun left (A key)
-        if key == b'a':
-            pass
+    # Move backward (S key)
+    if key == b's':
+        pass
 
-        # Rotate gun right (D key)
-        if key == b'd':
-            pass
+    # Rotate gun left (A key)
+    if key == b'a':
+        snakeAngle += 90
+        if snakeAngle > 360:
+            snakeAngle -= 360
+
+    # Rotate gun right (D key)
+    if key == b'd':
+        snakeAngle -= 90
+        if snakeAngle < 0:
+            snakeAngle += 360
 
 def setupCamera():
     glMatrixMode(GL_PROJECTION)
@@ -107,6 +184,10 @@ def setupCamera():
 
 
 def idle():
+    global snakePos, snakeAngle, snakeLength, snakeSpeed
+
+    # Snake Movement
+    snakeForwardMovement()
 
     glutPostRedisplay()
 
@@ -117,6 +198,8 @@ def showScreen():
     glViewport(0, 0, 1000, 800)
 
     setupCamera()
+    levelEasy()
+    drawSnake()
 
     glutSwapBuffers()
 
@@ -129,8 +212,8 @@ def main():
     wind = glutCreateWindow(b"Snake Game Project")
 
     glutDisplayFunc(showScreen)
-    # glutKeyboardFunc(keyboardListener)
-    # glutSpecialFunc(specialKeyListener)
+    glutKeyboardFunc(keyboardListener)
+    glutSpecialFunc(specialKeyListener)
     # glutMouseFunc(mouseListener)
     glutIdleFunc(idle)
 
