@@ -18,10 +18,13 @@ GRID_LENGTH = 150
 
 # Snake variables
 snakePos = [0, 0, 0]
-snakeLength = 2
+snakeLength = 20
+snakeRadius = 30
+snakeBody = []
 snakeAngle = 0
 snakeSpeed = 2
 snakeColor = (1, 0, 0)
+positionHistory = []
 
 
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
@@ -75,22 +78,39 @@ def levelEasy():
 def drawSnake():
     glPushMatrix()
 
-    # Snake Position
-    glTranslatef(snakePos[0], snakePos[1], snakePos[2])
-    glRotatef(snakeAngle, 0, 0, 1)
+    for i, segment in enumerate(snakeBody):
+        glPushMatrix()
 
-    for i in range(snakeLength):
         if i == 0:
             glColor3f(0.6, 0, 0)
         else:
             glColor3f(snakeColor[0], snakeColor[1], snakeColor[2])
-        glTranslatef(0, i * 50, 0)
-        gluSphere(gluNewQuadric(), 30, 10, 10)
+        glTranslatef(segment[0], segment[1], segment[2])
+        gluSphere(gluNewQuadric(), snakeRadius, 10, 10)
+
+        glPopMatrix()
 
     glPopMatrix()
 
+def drawSnakeBody():
+    global snakeBody, snakeLength
+
+    for i in range(snakeLength):
+        if i == 0:
+            snakeBody.append([0, 0, 0])
+        else:
+            newSnakeBodyY = i * snakeRadius * 2
+            snakeBody.append([snakeBody[i - 1][0], newSnakeBodyY, snakeBody[i - 1][2]])
+
+def prefillPositionHistory():
+    global positionHistory, snakeBody, snakeLength, snakeSpeed, snakeRadius
+
+    # Insert initial snake positions into history, spaced correctly
+    for i in range((snakeLength + 1) * (snakeRadius * 2) // snakeSpeed):
+        positionHistory.append(snakeBody[0][:])
+
 def snakeForwardMovement():
-    global snakePos, snakeAngle, snakeLength, snakeSpeed
+    global snakePos, snakeAngle, snakeLength, snakeSpeed, snakeBody, positionHistory
 
     # Boundaries
     min_x = -COLS * GRID_LENGTH / 2 + 50
@@ -98,18 +118,34 @@ def snakeForwardMovement():
     min_y = -ROWS * GRID_LENGTH / 2 + 50
     max_y = ROWS * GRID_LENGTH / 2 - 50
 
-    # Snake Movement
-    snakePos[0] -= snakeSpeed * math.sin(math.radians(-snakeAngle))
-    snakePos[1] -= snakeSpeed * math.cos(math.radians(snakeAngle))
+    # Move the head
+    snakeBody[0][0] -= snakeSpeed * math.sin(math.radians(-snakeAngle))
+    snakeBody[0][1] -= snakeSpeed * math.cos(math.radians(snakeAngle))
 
-    if snakePos[0] < min_x:
-        snakePos[0] = min_x
-    if snakePos[0] > max_x:
-        snakePos[0] = max_x
-    if snakePos[1] < min_y:
-        snakePos[1] = min_y
-    if snakePos[1] > max_y:
-        snakePos[1] = max_y
+    if snakeBody[0][0] < min_x:
+        snakeBody[0][0] = min_x
+    if snakeBody[0][0] > max_x:
+        snakeBody[0][0] = max_x
+    if snakeBody[0][1] < min_y:
+        snakeBody[0][1] = min_y
+    if snakeBody[0][1] > max_y:
+        snakeBody[0][1] = max_y
+
+    # Record the current head position
+    positionHistory.insert(0, snakeBody[0][:])
+
+    # Keep the path history from growing too large
+    max_history_length = (snakeLength + 1) * (snakeRadius * 2) // snakeSpeed
+    if len(positionHistory) > max_history_length:
+        positionHistory.pop()
+
+    # Move body segments along the path history
+    for i in range(1, len(snakeBody)):
+        index = i * (snakeRadius * 2) // snakeSpeed
+        if index < len(positionHistory):
+            snakeBody[i][0] = positionHistory[index][0]
+            snakeBody[i][1] = positionHistory[index][1]
+            snakeBody[i][2] = positionHistory[index][2]
 
 
 def specialKeyListener(key, x, y):
@@ -133,11 +169,11 @@ def specialKeyListener(key, x, y):
     camera_pos = (x, y, z)
 
 def mouseListener(button, state, x, y):
-    global gameOver, firstPerson
+    global snakeAngle, snakeLength, snakeSpeed, snakeBody
 
     if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
         pass
-    
+        
     if button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
         pass
 
@@ -210,11 +246,12 @@ def main():
     glutInitWindowSize(1000, 800)
     glutInitWindowPosition(0, 0)
     wind = glutCreateWindow(b"Snake Game Project")
-
+    drawSnakeBody()
+    prefillPositionHistory()
     glutDisplayFunc(showScreen)
     glutKeyboardFunc(keyboardListener)
     glutSpecialFunc(specialKeyListener)
-    # glutMouseFunc(mouseListener)
+    glutMouseFunc(mouseListener)
     glutIdleFunc(idle)
 
     glutMainLoop()
