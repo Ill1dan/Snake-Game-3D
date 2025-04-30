@@ -26,6 +26,10 @@ snakeSpeed = 2
 snakeColor = (1, 0, 0)
 positionHistory = []
 
+# Food variables
+foodList = []
+
+
 
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
     glColor3f(1,1,1)
@@ -147,6 +151,42 @@ def snakeForwardMovement():
             snakeBody[i][1] = positionHistory[index][1]
             snakeBody[i][2] = positionHistory[index][2]
 
+def drawFood(x, y, z):
+    glPushMatrix()
+    
+    # Food Orange Sphere
+    glColor3f(1, 0.6, 0)
+
+    glTranslatef(x, y, z + 35)
+    # glScale(enemyPulse, enemyPulse, enemyPulse)
+    gluSphere(gluNewQuadric(), 30, 10, 10)
+
+    glPopMatrix()
+
+def foodSpawn():
+    global foodList
+
+    # Boundaries
+    min_x = -COLS * GRID_LENGTH / 2 + 50
+    max_x = COLS * GRID_LENGTH / 2 - 50
+    min_y = -ROWS * GRID_LENGTH / 2 + 50
+    max_y = ROWS * GRID_LENGTH / 2 - 50
+
+    # Randomly generate food positions
+    for i in range(5):
+        x = random.randint(int(min_x), int(max_x))
+        y = random.randint(int(min_y), int(max_y))
+        z = 0
+
+        for segment in snakeBody:
+            segment_x, segment_y, segment_z = segment
+
+            while (x >= segment_x - 30 and x <= segment_x + 30) and (y >= segment_y - 30 and y <= segment_y + 30):
+                x = random.randint(int(min_x), int(max_x))
+                y = random.randint(int(min_y), int(max_y))
+
+        foodList.append((x, y, z))
+
 
 def specialKeyListener(key, x, y):
     global camera_pos
@@ -237,6 +277,10 @@ def showScreen():
     levelEasy()
     drawSnake()
 
+    # Draw the food
+    for food in foodList:
+        drawFood(food[0], food[1], food[2])
+
     glutSwapBuffers()
 
 
@@ -248,6 +292,7 @@ def main():
     wind = glutCreateWindow(b"Snake Game Project")
     drawSnakeBody()
     prefillPositionHistory()
+    foodSpawn()
     glutDisplayFunc(showScreen)
     glutKeyboardFunc(keyboardListener)
     glutSpecialFunc(specialKeyListener)
