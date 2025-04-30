@@ -18,7 +18,7 @@ GRID_LENGTH = 150
 
 # Snake variables
 snakePos = [0, 0, 0]
-snakeLength = 20
+snakeLength = 5
 snakeRadius = 30
 snakeBody = []
 snakeAngle = 0
@@ -163,7 +163,7 @@ def drawFood(x, y, z):
 
     glPopMatrix()
 
-def foodSpawn():
+def foodSpawn(totalFood=5):
     global foodList
 
     # Boundaries
@@ -173,7 +173,7 @@ def foodSpawn():
     max_y = ROWS * GRID_LENGTH / 2 - 50
 
     # Randomly generate food positions
-    for i in range(5):
+    for i in range(totalFood):
         x = random.randint(int(min_x), int(max_x))
         y = random.randint(int(min_y), int(max_y))
         z = 0
@@ -186,6 +186,30 @@ def foodSpawn():
                 y = random.randint(int(min_y), int(max_y))
 
         foodList.append((x, y, z))
+
+def foodCollision():
+    global foodList, snakeBody, snakeLength, snakeSpeed, snakeRadius
+
+    foodToRemove = []
+
+    for food in foodList:
+        food_x, food_y, food_z = food
+        head_x, head_y, head_z = snakeBody[0]
+
+        if math.sqrt((food_x - head_x) ** 2 + (food_y - head_y) ** 2) < 50:
+            # Remove the food from the list
+            foodList.remove(food)
+
+            # Increase the snake length
+            snakeLength += 1
+
+            # Add a new segment to the snake body
+            new_segment = [food_x, food_y, food_z]
+            snakeBody.append(new_segment)
+
+            # Spawn new food
+            foodSpawn(1)
+
 
 
 def specialKeyListener(key, x, y):
@@ -264,6 +288,8 @@ def idle():
 
     # Snake Movement
     snakeForwardMovement()
+
+    foodCollision()
 
     glutPostRedisplay()
 
