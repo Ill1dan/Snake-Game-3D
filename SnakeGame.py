@@ -16,9 +16,17 @@ COLS = 12
 ROWS = 10
 GRID_LENGTH = 150
 
+# Game variables
+mainMenu = True
+Easy = False
+Medium = False
+Hard = False
+gameOver = False
+gamePaused = False
+
 # Snake variables
 snakePos = [0, 0, 0]
-snakeLength = 5
+snakeLength = 1
 snakeRadius = 30
 snakeBody = []
 snakeAngle = 0
@@ -29,7 +37,218 @@ positionHistory = []
 # Food variables
 foodList = []
 
+def midPointLine(x0, y0, x1, y1):
+    dx = x1 - x0
+    dy = y1 - y0
+    d = 2 * dy - dx
+    E = 2 * dy
+    NE = 2 * (dy - dx)
+    x, y = x0, y0
+    pixels = [(x, y)]
 
+    while x < x1:
+        if d <= 0:
+            d += E
+            x += 1
+        else:
+            d += NE
+            x += 1
+            y += 1
+        pixels.append((x, y))
+    
+    return pixels
+
+def findZone(x0, y0, x1, y1):
+    dx = x1 - x0
+    dy = y1 - y0
+    if abs(dx) > abs(dy):
+        if dx > 0:
+            if dy > 0:
+                return 0
+            else:
+                return 7
+        else:
+            if dy > 0:
+                return 3
+            else:
+                return 4
+    else:
+        if dy > 0:
+            if dx > 0:
+                return 1
+            else:
+                return 2
+        else:
+            if dx > 0:
+                return 6
+            else:
+                return 5
+
+def convertCordinateOfZone(x0, y0, x1, y1, zone):
+    if zone == 0:
+        return x0, y0, x1, y1
+    elif zone == 1:
+        return y0, x0, y1, x1
+    elif zone == 2:
+        return y0, -x0, y1, -x1
+    elif zone == 3:
+        return -x0, y0, -x1, y1
+    elif zone == 4:
+        return -x0, -y0, -x1, -y1
+    elif zone == 5:
+        return -y0, -x0, -y1, -x1
+    elif zone == 6:
+        return -y0, x0, -y1, x1
+    elif zone == 7:
+        return x0, -y0, x1, -y1
+    
+def reconvertCordinateOfZone(x, y, zone):
+    if zone == 0:
+        return x, y
+    elif zone == 1:
+        return y, x
+    elif zone == 2:
+        return -y, x
+    elif zone == 3:
+        return -x, y
+    elif zone == 4:
+        return -x, -y
+    elif zone == 5:
+        return -y, -x
+    elif zone == 6:
+        return y, -x
+    elif zone == 7:
+        return x, -y
+
+def eightWaySymmetry(x0, y0, x1, y1):
+    initialZone = findZone(x0, y0, x1, y1)
+    x0, y0, x1, y1 = convertCordinateOfZone(x0, y0, x1, y1, initialZone)
+    pixels = midPointLine(x0, y0, x1, y1)
+    newPixels = []
+    for x, y in pixels:
+        newPixels.append(reconvertCordinateOfZone(x, y, initialZone))
+    
+    return newPixels
+
+def drawLine(x0, y0, x1, y1):
+    pixels = eightWaySymmetry(x0, y0, x1, y1)
+    glPointSize(1)
+    for x, y in pixels:
+        glBegin(GL_POINTS)
+        glVertex2i(int(x), int(y))
+        glEnd()
+
+def draw_text_with_lines(x, y, text):
+    char_width = 20
+    char_height = 40
+    spacing = 10
+
+    for i, char in enumerate(text):
+        char_x = x + i * (char_width + spacing)
+        draw_character_with_lines(char_x, y, char_width, char_height, char)
+
+def draw_character_with_lines(x, y, width, height, char):
+    if char == "M":
+        drawLine(x, y, x, y + height)  # Left vertical line
+        drawLine(x, y + height, x + width / 2, y)  # Diagonal to middle
+        drawLine(x + width / 2, y, x + width, y + height)  # Diagonal to top right
+        drawLine(x + width, y + height, x + width, y)  # Right vertical line
+    elif char == "A":
+        drawLine(x, y, x + width / 2, y + height)  # Left diagonal
+        drawLine(x + width / 2, y + height, x + width, y)  # Right diagonal
+        drawLine(x + width / 4, y + height / 2, x + 3 * width / 4, y + height / 2)  # Horizontal bar
+    elif char == "I":
+        drawLine(x + width / 2, y, x + width / 2, y + height)  # Vertical line
+    elif char == "N":
+        drawLine(x, y, x, y + height)  # Left vertical line
+        drawLine(x, y + height, x + width, y)  # Diagonal
+        drawLine(x + width, y, x + width, y + height)  # Right vertical line
+    elif char == "U":
+        drawLine(x, y + height, x, y)  # Left vertical line
+        drawLine(x, y, x + width, y)  # Bottom horizontal line
+        drawLine(x + width, y, x + width, y + height)  # Right vertical line
+    elif char == "S":
+        drawLine(x + width, y + height, x, y + height)  # Top horizontal line
+        drawLine(x, y + height, x, y + height / 2)  # Left vertical (top half)
+        drawLine(x, y + height / 2, x + width, y + height / 2)  # Middle horizontal line
+        drawLine(x + width, y + height / 2, x + width, y)  # Right vertical (bottom half)
+        drawLine(x + width, y, x, y)  # Bottom horizontal line
+    elif char == "Y":
+        drawLine(x, y + height, x + width / 2, y + height / 2)  # Left diagonal
+        drawLine(x + width / 2, y + height / 2, x + width, y + height)  # Right diagonal
+        drawLine(x + width / 2, y + height / 2, x + width / 2, y)  # Vertical line (bottom half)
+    elif char == "D":
+        drawLine(x, y, x, y + height)  # Left vertical line
+        drawLine(x, y + height, x + width / 2, y + height)  # Top horizontal line
+        drawLine(x + width / 2, y + height, x + width, y + height / 2)  # Top-right diagonal
+        drawLine(x + width, y + height / 2, x + width / 2, y)  # Bottom-right diagonal
+        drawLine(x + width / 2, y, x, y)  # Bottom horizontal line
+    elif char == "R":
+        drawLine(x, y, x, y + height)  # Left vertical line
+        drawLine(x, y + height, x + width / 2, y + height)  # Top horizontal line
+        drawLine(x + width / 2, y + height, x + width, y + height / 2)  # Top-right diagonal
+        drawLine(x + width, y + height / 2, x + width / 2, y + height / 2)  # Middle horizontal line
+        drawLine(x + width / 2, y + height / 2, x, y + height / 2)  # Connect to left
+        drawLine(x + width / 2, y + height / 2, x + width, y)  # Diagonal leg
+    elif char == " ":
+        pass  # Space, no lines drawn
+    elif char == ".":
+        drawLine(x + width / 2, y, x + width / 2, y)  # Single point for a dot
+    elif char == "1":
+        drawLine(x + width / 2, y, x + width / 2, y + height)  # Vertical line
+    elif char == "2":
+        drawLine(x, y + height, x + width, y + height)  # Top horizontal line
+        drawLine(x + width, y + height, x + width, y + height / 2)  # Right vertical line
+        drawLine(x + width, y + height / 2, x, y)  # Diagonal to bottom left
+        drawLine(x, y, x + width, y)  # Bottom horizontal line
+    elif char == "3":
+        drawLine(x, y + height, x + width, y + height)  # Top horizontal line
+        drawLine(x + width, y + height, x + width, y)  # Right vertical line
+        drawLine(x, y + height / 2, x + width, y + height / 2)  # Middle horizontal line
+        drawLine(x, y, x + width, y)  # Bottom horizontal line
+    elif char == "E":
+        drawLine(x, y, x, y + height)  # Left vertical line
+        drawLine(x, y + height, x + width, y + height)  # Top horizontal line
+        drawLine(x, y + height / 2, x + width / 2, y + height / 2)  # Middle horizontal line
+        drawLine(x, y, x + width, y)  # Bottom horizontal line
+    elif char == "H":
+        drawLine(x, y, x, y + height)  # Left vertical line
+        drawLine(x + width, y, x + width, y + height)  # Right vertical line
+        drawLine(x, y + height / 2, x + width, y + height / 2)  # Middle horizontal line
+
+def mainMenu():
+    # Set up a 2D orthographic projection for the menu
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    gluOrtho2D(0, 1000, 0, 800)  # Set the 2D coordinate system
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+
+    # Draw the background
+    glColor3f(0.2, 0.2, 0.2)
+    glBegin(GL_QUADS)
+    glVertex2f(0, 0)
+    glVertex2f(1000, 0)
+    glVertex2f(1000, 800)
+    glVertex2f(0, 800)
+    glEnd()
+
+    # Draw the title "Main Menu" using lines
+    glColor3f(1, 1, 1)  # Set line color to white
+    draw_text_with_lines(400, 600, "MAIN MENU")
+
+    # Draw the menu options using lines
+    draw_text_with_lines(410, 500, "1. EASY")
+    draw_text_with_lines(410, 450, "2. MEDIUM")
+    draw_text_with_lines(410, 400, "3. HARD")
+
+    # Restore the previous projection and modelview matrices
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
 
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
     glColor3f(1,1,1)
@@ -163,7 +382,7 @@ def drawFood(x, y, z):
 
     glPopMatrix()
 
-def foodSpawn(totalFood=5):
+def foodSpawn(totalFood=1):
     global foodList
 
     # Boundaries
@@ -188,9 +407,7 @@ def foodSpawn(totalFood=5):
         foodList.append((x, y, z))
 
 def foodCollision():
-    global foodList, snakeBody, snakeLength, snakeSpeed, snakeRadius
-
-    foodToRemove = []
+    global foodList, snakeBody, snakeLength
 
     for food in foodList:
         food_x, food_y, food_z = food
@@ -242,7 +459,7 @@ def mouseListener(button, state, x, y):
         pass
 
 def keyboardListener(key, x, y):
-    global snakePos, snakeAngle, snakeLength, snakeSpeed
+    global mainMenu, Easy, Medium, Hard, snakeAngle
 
     # Move forward (W key)
     if key == b'w':
@@ -263,6 +480,24 @@ def keyboardListener(key, x, y):
     if key == b'd':
         if snakeAngle != 90:
             snakeAngle = 270
+    
+    if key == b'1':
+        mainMenu = False
+        Easy = True
+        Medium = False
+        Hard = False
+    
+    if key == b'2':
+        mainMenu = False
+        Easy = False
+        Medium = True
+        Hard = False
+    
+    if key == b'3':
+        mainMenu = False
+        Easy = False
+        Medium = False
+        Hard = True
 
 def setupCamera():
     glMatrixMode(GL_PROJECTION)
@@ -298,14 +533,16 @@ def showScreen():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     glViewport(0, 0, 1000, 800)
-
     setupCamera()
-    levelEasy()
-    drawSnake()
 
-    # Draw the food
-    for food in foodList:
-        drawFood(food[0], food[1], food[2])
+    if mainMenu:
+        mainMenu()
+    elif Easy:
+        levelEasy()
+        drawSnake()
+        # Draw the food
+        for food in foodList:
+            drawFood(food[0], food[1], food[2])
 
     glutSwapBuffers()
 
