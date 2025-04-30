@@ -246,23 +246,23 @@ def keyboardListener(key, x, y):
 
     # Move forward (W key)
     if key == b'w':
-        pass
+        if snakeAngle != 180:
+            snakeAngle = 0
 
     # Move backward (S key)
     if key == b's':
-        pass
+        if snakeAngle != 0:
+            snakeAngle = 180
 
     # Rotate gun left (A key)
     if key == b'a':
-        snakeAngle += 90
-        if snakeAngle > 360:
-            snakeAngle -= 360
+        if snakeAngle != 270:
+            snakeAngle = 90
 
     # Rotate gun right (D key)
     if key == b'd':
-        snakeAngle -= 90
-        if snakeAngle < 0:
-            snakeAngle += 360
+        if snakeAngle != 90:
+            snakeAngle = 270
 
 def setupCamera():
     glMatrixMode(GL_PROJECTION)
