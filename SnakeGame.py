@@ -457,7 +457,18 @@ def foodSpawnPoison():
             x = random.randint(int(min_x), int(max_x))
             y = random.randint(int(min_y), int(max_y))
 
-    poisonFoodList.append((x, y, z))
+    # Append poison food with its spawn time
+    poisonFoodList.append((x, y, z, time.time()))  # Add current time as spawn time
+
+def updatePoisonFoodLifetime():
+    global poisonFoodList
+
+    current_time = time.time()
+    poisonFoodList = [
+        (x, y, z, spawn_time)
+        for x, y, z, spawn_time in poisonFoodList
+        if current_time - spawn_time < 10  # Keep only poison food younger than 10 seconds
+    ]
 
 
 def foodCollision():
@@ -489,7 +500,7 @@ def foodCollision():
                 foodSpawnBig()
 
             # Spawn poison food randomly
-            if random.random() < 0.1:
+            if random.random() < 0.5:
                 foodSpawnPoison()
     
     for bigFood in bigFoodList:
@@ -507,7 +518,7 @@ def foodCollision():
             snakeLength += 1
     
     for poisonFood in poisonFoodList:
-        poisonFood_x, poisonFood_y, poisonFood_z = poisonFood
+        poisonFood_x, poisonFood_y, poisonFood_z, _ = poisonFood
         head_x, head_y, head_z = snakeBody[0]
 
         if math.sqrt((poisonFood_x - head_x) ** 2 + (poisonFood_y - head_y) ** 2) < 50:
@@ -647,8 +658,15 @@ def idle():
 
     # Snake Movement
     snakeForwardMovement()
+
+    # Food Pulse Wave
     foodPulseWave()
+
+    # Food Collision and Spawn
     foodCollision()
+
+    # Update poison food lifetime
+    updatePoisonFoodLifetime()
 
     glutPostRedisplay()
 
