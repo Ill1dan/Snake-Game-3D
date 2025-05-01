@@ -38,6 +38,7 @@ positionHistory = []
 # Food variables
 foodList = []
 bigFoodList = []
+poisonFoodList = []
 foodPulse = 1
 foodPulseTime = 0
 
@@ -434,6 +435,30 @@ def foodSpawnBig():
 
     bigFoodList.append((x, y, z))
 
+def foodSpawnPoison():
+    global poisonFoodList
+
+    # Boundaries
+    min_x = -COLS * GRID_LENGTH / 2 + 50
+    max_x = COLS * GRID_LENGTH / 2 - 50
+    min_y = -ROWS * GRID_LENGTH / 2 + 50
+    max_y = ROWS * GRID_LENGTH / 2 - 50
+
+    # Randomly generate poison food position
+    x = random.randint(int(min_x), int(max_x))
+    y = random.randint(int(min_y), int(max_y))
+    z = 0
+
+    # Ensure poison food does not spawn on the snake
+    for segment in snakeBody:
+        segment_x, segment_y, segment_z = segment
+
+        while (x >= segment_x - 30 and x <= segment_x + 30) and (y >= segment_y - 30 and y <= segment_y + 30):
+            x = random.randint(int(min_x), int(max_x))
+            y = random.randint(int(min_y), int(max_y))
+
+    poisonFoodList.append((x, y, z))
+
 
 def foodCollision():
     global foodList, snakeBody, snakeLength, score
@@ -460,8 +485,12 @@ def foodCollision():
             score += 1
 
             # Spawn big food if the score is a multiple of 5
-            if score % 5 == 0:
+            if score % 5 == 0 and not bigFoodList:
                 foodSpawnBig()
+
+            # Spawn poison food randomly
+            if random.random() < 0.1:
+                foodSpawnPoison()
     
     for bigFood in bigFoodList:
         bigFood_x, bigFood_y, bigFood_z = bigFood
@@ -476,6 +505,22 @@ def foodCollision():
 
             # Increase the snake length
             snakeLength += 1
+    
+    for poisonFood in poisonFoodList:
+        poisonFood_x, poisonFood_y, poisonFood_z = poisonFood
+        head_x, head_y, head_z = snakeBody[0]
+
+        if math.sqrt((poisonFood_x - head_x) ** 2 + (poisonFood_y - head_y) ** 2) < 50:
+            # Remove the poison food from the list
+            poisonFoodList.remove(poisonFood)
+
+            # Decrease the score
+            score -= 1
+
+            # Decrease the snake length
+            if snakeLength > 1:
+                snakeLength -= 1
+                snakeBody.pop()
 
 def foodPulseWave():
     global foodPulseTime, foodPulse
@@ -492,6 +537,18 @@ def drawBigFood(x, y, z):
     glTranslatef(x, y, z + 35)
     glScale(foodPulse, foodPulse, foodPulse)
     gluSphere(gluNewQuadric(), 60, 10, 10)
+
+    glPopMatrix()
+
+def drawPoisonFood(x, y, z):
+    glPushMatrix()
+    
+    # Food Green Sphere
+    glColor3f(0, 0.7, 0)
+
+    glTranslatef(x, y, z + 35)
+    glScale(foodPulse, foodPulse, foodPulse)
+    gluSphere(gluNewQuadric(), 40, 10, 10)
 
     glPopMatrix()
 
@@ -614,6 +671,9 @@ def showScreen():
         
         for bigFood in bigFoodList:
             drawBigFood(bigFood[0], bigFood[1], bigFood[2])
+        
+        for poisonFood in poisonFoodList:
+            drawPoisonFood(poisonFood[0], poisonFood[1], poisonFood[2])
 
         draw_text(10, 770, f"Game Score: {score}")
 
