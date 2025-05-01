@@ -23,6 +23,7 @@ Medium = False
 Hard = False
 gameOver = False
 gamePaused = False
+firstPerson = False
 score = 0
 
 # Snake variables
@@ -585,13 +586,13 @@ def specialKeyListener(key, x, y):
     camera_pos = (x, y, z)
 
 def mouseListener(button, state, x, y):
-    global snakeAngle, snakeLength, snakeSpeed, snakeBody
+    global firstPerson
 
     if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
         pass
         
     if button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
-        pass
+        firstPerson = not firstPerson
 
 def keyboardListener(key, x, y):
     global mainMenu, Easy, Medium, Hard, snakeAngle
@@ -641,17 +642,33 @@ def setupCamera():
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
 
-    x, y, z = camera_pos
+    if firstPerson:
+        head_x, head_y, head_z = snakeBody[0]
 
-    cameraAngle = math.radians(x)
+        # Position the camera slightly behind and above the snake's head
+        eyeX = head_x
+        eyeY = head_y
+        eyeZ = head_z + 100
 
-    x = y * math.sin(cameraAngle)
-    y = y * math.cos(cameraAngle)
-        
-    gluLookAt(x, y, z,
-            0, 0, 0,
-            0, 0, 1)
+        # Adjust the center position based on the snake's angle
+        centerX = head_x - math.sin(math.radians(-snakeAngle)) * 50
+        centerY = head_y - math.cos(math.radians(-snakeAngle)) * 50
+        centerZ = head_z
 
+        gluLookAt(eyeX, eyeY, eyeZ,
+                centerX, centerY, centerZ,
+                0, 0, 1)
+    else:
+        x, y, z = camera_pos
+
+        cameraAngle = math.radians(x)
+
+        x = y * math.sin(cameraAngle)
+        y = y * math.cos(cameraAngle)
+            
+        gluLookAt(x, y, z,
+                0, 0, 0,
+                0, 0, 1)
 
 def idle():
     global snakePos, snakeAngle, snakeLength, snakeSpeed
