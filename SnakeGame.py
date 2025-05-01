@@ -43,6 +43,14 @@ poisonFoodList = []
 foodPulse = 1
 foodPulseTime = 0
 
+# Obstacle variables
+obstacleList = []
+
+# Portal variables
+portalList = []
+portalTimer = 0
+portalSpawnInterval = 10  # Seconds
+
 def midPointLine(x0, y0, x1, y1):
     dx = x1 - x0
     dy = y1 - y0
@@ -473,8 +481,9 @@ def updatePoisonFoodLifetime():
 
 
 def foodCollision():
-    global foodList, snakeBody, snakeLength, score
+    global foodList, snakeBody, snakeLength, score, gameOver, portalList
 
+    # Regular food collision
     for food in foodList:
         food_x, food_y, food_z = food
         head_x, head_y, head_z = snakeBody[0]
@@ -504,6 +513,7 @@ def foodCollision():
             if random.random() < 0.5:
                 foodSpawnPoison()
     
+    # Big food collision 
     for bigFood in bigFoodList:
         bigFood_x, bigFood_y, bigFood_z = bigFood
         head_x, head_y, head_z = snakeBody[0]
@@ -518,6 +528,7 @@ def foodCollision():
             # Increase the snake length
             snakeLength += 1
     
+    # Poison food collision 
     for poisonFood in poisonFoodList:
         poisonFood_x, poisonFood_y, poisonFood_z, _ = poisonFood
         head_x, head_y, head_z = snakeBody[0]
@@ -533,6 +544,49 @@ def foodCollision():
             if snakeLength > 1:
                 snakeLength -= 1
                 snakeBody.pop()
+    
+    # Obstacle collision
+    for obstacle in obstacleList:
+        obstacle_x, obstacle_y, obstacle_z = obstacle
+        head_x, head_y, head_z = snakeBody[0]
+
+        if math.sqrt((obstacle_x - head_x) ** 2 + (obstacle_y - head_y) ** 2) < 50:
+            # Game over if obstacle is hit
+            gameOver = True
+            return
+    
+    # Portal collision
+    if len(portalList) >= 2:
+        portal1 = portalList[0]
+        portal2 = portalList[1]
+        
+        portal1_x, portal1_y, portal1_z = portal1
+        portal2_x, portal2_y, portal2_z = portal2
+        head_x, head_y, head_z = snakeBody[0]
+        
+        # Check if snake enters portal 1
+        if math.sqrt((portal1_x - head_x) ** 2 + (portal1_y - head_y) ** 2) < 50:
+            # Teleport to portal 2
+            snakeBody[0][0] = portal2_x
+            snakeBody[0][1] = portal2_y
+            
+            # Update position history to avoid weird body movement
+            positionHistory[0] = [portal2_x, portal2_y, portal2_z]
+            
+            # Remove portals after use
+            portalList = []
+        
+        # Check if snake enters portal 2
+        elif math.sqrt((portal2_x - head_x) ** 2 + (portal2_y - head_y) ** 2) < 50:
+            # Teleport to portal 1
+            snakeBody[0][0] = portal1_x
+            snakeBody[0][1] = portal1_y
+            
+            # Update position history
+            positionHistory[0] = [portal1_x, portal1_y, portal1_z]
+            
+            # Remove portals after use
+            portalList = []
 
 def foodPulseWave():
     global foodPulseTime, foodPulse
@@ -563,6 +617,232 @@ def drawPoisonFood(x, y, z):
     gluSphere(gluNewQuadric(), 40, 10, 10)
 
     glPopMatrix()
+
+def drawObstacle(x, y, z):
+    glPushMatrix()
+    
+    # Obstacle (black cube)
+    glColor3f(0, 0, 0)
+    glTranslatef(x, y, z + 35)
+    
+    # Draw a cube
+    glBegin(GL_QUADS)
+    # Front face
+    glVertex3f(-30, -30, -30)
+    glVertex3f(30, -30, -30)
+    glVertex3f(30, 30, -30)
+    glVertex3f(-30, 30, -30)
+    
+    # Back face
+    glVertex3f(-30, -30, 30)
+    glVertex3f(30, -30, 30)
+    glVertex3f(30, 30, 30)
+    glVertex3f(-30, 30, 30)
+    
+    # Left face
+    glVertex3f(-30, -30, -30)
+    glVertex3f(-30, 30, -30)
+    glVertex3f(-30, 30, 30)
+    glVertex3f(-30, -30, 30)
+    
+    # Right face
+    glVertex3f(30, -30, -30)
+    glVertex3f(30, 30, -30)
+    glVertex3f(30, 30, 30)
+    glVertex3f(30, -30, 30)
+    
+    # Top face
+    glVertex3f(-30, 30, -30)
+    glVertex3f(30, 30, -30)
+    glVertex3f(30, 30, 30)
+    glVertex3f(-30, 30, 30)
+    
+    # Bottom face
+    glVertex3f(-30, -30, -30)
+    glVertex3f(30, -30, -30)
+    glVertex3f(30, -30, 30)
+    glVertex3f(-30, -30, 30)
+    glEnd()
+    
+    glPopMatrix()
+
+def drawPortal(x, y, z):
+    glPushMatrix()
+    
+    # Portal (purple square)
+    glColor3f(0.5, 0, 0.8)
+    glTranslatef(x, y, z + 15)
+    
+    # Create a square
+    glBegin(GL_QUADS)
+    glVertex3f(-40, -40, 0)
+    glVertex3f(40, -40, 0)
+    glVertex3f(40, 40, 0)
+    glVertex3f(-40, 40, 0)
+    glEnd()
+    
+    # Add inner square for portal effect
+    glColor3f(0.7, 0.3, 1.0)
+    glBegin(GL_QUADS)
+    glVertex3f(-20, -20, 1)
+    glVertex3f(20, -20, 1)
+    glVertex3f(20, 20, 1)
+    glVertex3f(-20, 20, 1)
+    glEnd()
+
+    glPopMatrix()
+
+def obstacleSpawn():
+    global obstacleList
+
+    # Boundaries
+    min_x = -COLS * GRID_LENGTH / 2 + 50
+    max_x = COLS * GRID_LENGTH / 2 - 50
+    min_y = -ROWS * GRID_LENGTH / 2 + 50
+    max_y = ROWS * GRID_LENGTH / 2 - 50
+    
+    x = random.randint(int(min_x), int(max_x))
+    y = random.randint(int(min_y), int(max_y))
+    z = 0
+    
+    # Ensure obstacles don't spawn on the snake or other game objects
+    valid_position = False
+    while not valid_position:
+        valid_position = True
+        
+        # Check if it's too close to the snake
+        for segment in snakeBody:
+            segment_x, segment_y, segment_z = segment
+            if math.sqrt((x - segment_x) ** 2 + (y - segment_y) ** 2) < 60:
+                valid_position = False
+                break
+        
+        # Check if it's too close to other game objects
+        for food in foodList + bigFoodList + poisonFoodList:
+            # Handle different structures of foodList and poisonFoodList
+            if len(food) == 4:  # This is a poison food with spawn time
+                food_x, food_y, food_z, _ = food
+            else:
+                food_x, food_y, food_z = food
+                
+            if math.sqrt((x - food_x) ** 2 + (y - food_y) ** 2) < 80:
+                valid_position = False
+                break
+                
+        # Check if it's too close to other obstacles
+        for obstacle in obstacleList:
+            obs_x, obs_y, obs_z = obstacle
+            if math.sqrt((x - obs_x) ** 2 + (y - obs_y) ** 2) < 80:
+                valid_position = False
+                break
+        
+        # Check if it's too close to portals
+        for portal in portalList:
+            portal_x, portal_y, portal_z = portal
+            if math.sqrt((x - portal_x) ** 2 + (y - portal_y) ** 2) < 80:
+                valid_position = False
+                break
+        
+        if not valid_position:
+            x = random.randint(int(min_x), int(max_x))
+            y = random.randint(int(min_y), int(max_y))
+    
+    obstacleList.append((x, y, z))
+
+def portalSpawn():
+    global portalList
+    
+    # We need pairs of portals
+    portalList = []
+    
+    # Boundaries
+    min_x = -COLS * GRID_LENGTH / 2 + 50
+    max_x = COLS * GRID_LENGTH / 2 - 50
+    min_y = -ROWS * GRID_LENGTH / 2 + 50
+    max_y = ROWS * GRID_LENGTH / 2 - 50
+    
+    # First portal
+    x1 = random.randint(int(min_x), int(max_x))
+    y1 = random.randint(int(min_y), int(max_y))
+    z1 = 0
+    
+    valid_position = False
+    while not valid_position:
+        valid_position = True
+        
+        # Check if it's too close to the snake
+        for segment in snakeBody:
+            segment_x, segment_y, segment_z = segment
+            if math.sqrt((x1 - segment_x) ** 2 + (y1 - segment_y) ** 2) < 60:
+                valid_position = False
+                break
+        
+        # Check if it's too close to other game objects (similar to obstacleSpawn)
+        for food in foodList + bigFoodList + poisonFoodList:
+            if len(food) == 4:  # This is a poison food with spawn time
+                food_x, food_y, food_z, _ = food
+            else:
+                food_x, food_y, food_z = food
+                
+            if math.sqrt((x1 - food_x) ** 2 + (y1 - food_y) ** 2) < 80:
+                valid_position = False
+                break
+        
+        # Check if it's too close to obstacles
+        for obstacle in obstacleList:
+            obs_x, obs_y, obs_z = obstacle
+            if math.sqrt((x1 - obs_x) ** 2 + (y1 - obs_y) ** 2) < 80:
+                valid_position = False
+                break
+        
+        if not valid_position:
+            x1 = random.randint(int(min_x), int(max_x))
+            y1 = random.randint(int(min_y), int(max_y))
+    
+    # Second portal
+    x2 = random.randint(int(min_x), int(max_x))
+    y2 = random.randint(int(min_y), int(max_y))
+    z2 = 0
+    
+    valid_position = False
+    while not valid_position:
+        valid_position = True
+        
+        # Check if it's too close to the snake
+        for segment in snakeBody:
+            segment_x, segment_y, segment_z = segment
+            if math.sqrt((x2 - segment_x) ** 2 + (y2 - segment_y) ** 2) < 60:
+                valid_position = False
+                break
+        
+        # Check if it's too close to other game objects
+        for food in foodList + bigFoodList + poisonFoodList:
+            if len(food) == 4:  # This is a poison food with spawn time
+                food_x, food_y, food_z, _ = food
+            else:
+                food_x, food_y, food_z = food
+                
+            if math.sqrt((x2 - food_x) ** 2 + (y2 - food_y) ** 2) < 80:
+                valid_position = False
+                break
+        
+        # Check if it's too close to obstacles
+        for obstacle in obstacleList:
+            obs_x, obs_y, obs_z = obstacle
+            if math.sqrt((x2 - obs_x) ** 2 + (y2 - obs_y) ** 2) < 80:
+                valid_position = False
+                break
+        
+        # Check if it's too close to first portal
+        if math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) < 200:  # Minimum distance between portals
+            valid_position = False
+        
+        if not valid_position:
+            x2 = random.randint(int(min_x), int(max_x))
+            y2 = random.randint(int(min_y), int(max_y))
+    
+    portalList.append((x1, y1, z1))
+    portalList.append((x2, y2, z2))
 
 
 def specialKeyListener(key, x, y):
@@ -595,7 +875,12 @@ def mouseListener(button, state, x, y):
         firstPerson = not firstPerson
 
 def keyboardListener(key, x, y):
-    global mainMenu, Easy, Medium, Hard, snakeAngle
+    global mainMenu, Easy, Medium, Hard, snakeAngle, gameOver
+
+    # Restart game if it's over
+    if gameOver and key == b'r':
+        resetGame()
+        return
 
     # Move forward (W key)
     if key == b'w':
@@ -622,18 +907,49 @@ def keyboardListener(key, x, y):
         Easy = True
         Medium = False
         Hard = False
+        resetGame()
     
     if key == b'2':
         mainMenu = False
         Easy = False
         Medium = True
         Hard = False
+        resetGame()
     
     if key == b'3':
         mainMenu = False
         Easy = False
         Medium = False
         Hard = True
+        resetGame()
+
+def resetGame():
+    global snakeBody, snakeLength, positionHistory, snakeAngle, score
+    global foodList, bigFoodList, poisonFoodList, obstacleList, portalList, gameOver
+    
+    # Reset snake
+    snakeBody = []
+    snakeLength = 1
+    positionHistory = []
+    snakeAngle = 0
+    
+    # Reset game objects
+    foodList = []
+    bigFoodList = []
+    poisonFoodList = []
+    obstacleList = []
+    portalList = []
+    
+    # Reset game state
+    score = 0
+    gameOver = False
+    
+    # Initialize snake
+    drawSnakeBody()
+    prefillPositionHistory()
+    
+    # Spawn initial food
+    foodSpawn(1)
 
 def setupCamera():
     glMatrixMode(GL_PROJECTION)
@@ -671,7 +987,7 @@ def setupCamera():
                 0, 0, 1)
 
 def idle():
-    global snakePos, snakeAngle, snakeLength, snakeSpeed
+    global snakePos, snakeAngle, snakeLength, snakeSpeed, portalTimer
 
     # Snake Movement
     snakeForwardMovement()
@@ -684,6 +1000,16 @@ def idle():
 
     # Update poison food lifetime
     updatePoisonFoodLifetime()
+
+    # Spawn obstacles randomly (about every 40 seconds)
+    if random.random() < 0.0003:
+        obstacleSpawn()
+    
+    # Spawn portals randomly (about every 30 seconds)
+    current_time = time.time()
+    if len(portalList) == 0 and current_time - portalTimer > portalSpawnInterval:
+        portalSpawn()
+        portalTimer = current_time
 
     glutPostRedisplay()
 
@@ -709,8 +1035,21 @@ def showScreen():
         
         for poisonFood in poisonFoodList:
             drawPoisonFood(poisonFood[0], poisonFood[1], poisonFood[2])
+        
+        # Draw obstacles
+        for obstacle in obstacleList:
+            drawObstacle(obstacle[0], obstacle[1], obstacle[2])
+        
+        # Draw portals
+        for portal in portalList:
+            drawPortal(portal[0], portal[1], portal[2])
 
         draw_text(10, 770, f"Game Score: {score}")
+
+        # Show game over message if game is over
+        if gameOver:
+            draw_text(400, 400, "GAME OVER")
+            draw_text(350, 350, "Press R to Restart")
 
     glutSwapBuffers()
 
@@ -734,3 +1073,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
