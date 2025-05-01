@@ -23,6 +23,7 @@ Medium = False
 Hard = False
 gameOver = False
 gamePaused = False
+score = 0
 
 # Snake variables
 snakePos = [0, 0, 0]
@@ -36,6 +37,9 @@ positionHistory = []
 
 # Food variables
 foodList = []
+bigFoodList = []
+foodPulse = 1
+foodPulseTime = 0
 
 def midPointLine(x0, y0, x1, y1):
     dx = x1 - x0
@@ -377,13 +381,12 @@ def drawFood(x, y, z):
     glColor3f(1, 0.6, 0)
 
     glTranslatef(x, y, z + 35)
-    # glScale(enemyPulse, enemyPulse, enemyPulse)
     gluSphere(gluNewQuadric(), 30, 10, 10)
 
     glPopMatrix()
 
 def foodSpawn(totalFood=1):
-    global foodList
+    global foodList, bigFoodList, score
 
     # Boundaries
     min_x = -COLS * GRID_LENGTH / 2 + 50
@@ -406,8 +409,34 @@ def foodSpawn(totalFood=1):
 
         foodList.append((x, y, z))
 
+
+def foodSpawnBig():
+    global bigFoodList
+
+    # Boundaries
+    min_x = -COLS * GRID_LENGTH / 2 + 50
+    max_x = COLS * GRID_LENGTH / 2 - 50
+    min_y = -ROWS * GRID_LENGTH / 2 + 50
+    max_y = ROWS * GRID_LENGTH / 2 - 50
+
+    # Randomly generate big food position
+    x = random.randint(int(min_x), int(max_x))
+    y = random.randint(int(min_y), int(max_y))
+    z = 0
+
+    # Ensure big food does not spawn on the snake
+    for segment in snakeBody:
+        segment_x, segment_y, segment_z = segment
+
+        while (x >= segment_x - 30 and x <= segment_x + 30) and (y >= segment_y - 30 and y <= segment_y + 30):
+            x = random.randint(int(min_x), int(max_x))
+            y = random.randint(int(min_y), int(max_y))
+
+    bigFoodList.append((x, y, z))
+
+
 def foodCollision():
-    global foodList, snakeBody, snakeLength
+    global foodList, snakeBody, snakeLength, score
 
     for food in foodList:
         food_x, food_y, food_z = food
@@ -427,6 +456,44 @@ def foodCollision():
             # Spawn new food
             foodSpawn(1)
 
+            # Increase the score
+            score += 1
+
+            # Spawn big food if the score is a multiple of 5
+            if score % 5 == 0:
+                foodSpawnBig()
+    
+    for bigFood in bigFoodList:
+        bigFood_x, bigFood_y, bigFood_z = bigFood
+        head_x, head_y, head_z = snakeBody[0]
+
+        if math.sqrt((bigFood_x - head_x) ** 2 + (bigFood_y - head_y) ** 2) < 50:
+            # Remove the big food from the list
+            bigFoodList.remove(bigFood)
+
+            # Increase the score
+            score += 5
+
+            # Increase the snake length
+            snakeLength += 1
+
+def foodPulseWave():
+    global foodPulseTime, foodPulse
+    
+    foodPulseTime += 0.02
+    foodPulse = 1 + 0.3 * math.sin(foodPulseTime)
+
+def drawBigFood(x, y, z):
+    glPushMatrix()
+    
+    # Food Blue Sphere
+    glColor3f(0, 0, 1)
+
+    glTranslatef(x, y, z + 35)
+    glScale(foodPulse, foodPulse, foodPulse)
+    gluSphere(gluNewQuadric(), 60, 10, 10)
+
+    glPopMatrix()
 
 
 def specialKeyListener(key, x, y):
@@ -523,7 +590,7 @@ def idle():
 
     # Snake Movement
     snakeForwardMovement()
-
+    foodPulseWave()
     foodCollision()
 
     glutPostRedisplay()
@@ -540,9 +607,15 @@ def showScreen():
     elif Easy:
         levelEasy()
         drawSnake()
+
         # Draw the food
         for food in foodList:
             drawFood(food[0], food[1], food[2])
+        
+        for bigFood in bigFoodList:
+            drawBigFood(bigFood[0], bigFood[1], bigFood[2])
+
+        draw_text(10, 770, f"Game Score: {score}")
 
     glutSwapBuffers()
 
