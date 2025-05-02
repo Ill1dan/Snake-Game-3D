@@ -51,6 +51,13 @@ portalList = []
 portalTimer = 0
 portalSpawnInterval = 10  # Seconds
 
+# Cheat mode variables
+cheatModeActive = False
+cheatModeDuration = 10  # 10 seconds
+cheatModeStartTime = 0
+cheatBarProgress = 0
+cheatBarFull = 20  # 20 points to fill the bar
+
 def midPointLine(x0, y0, x1, y1):
     dx = x1 - x0
     dy = y1 - y0
@@ -313,15 +320,31 @@ def levelEasy():
     glPopMatrix()
 
 def drawSnake():
+    global snakeBody, cheatModeActive
+    
     glPushMatrix()
 
     for i, segment in enumerate(snakeBody):
         glPushMatrix()
 
-        if i == 0:
-            glColor3f(0.6, 0, 0)
+        if cheatModeActive:
+            # Rainbow effect for cheat mode
+            pulse = (time.time() * 3) % 1.0
+            if i == 0:
+                glColor3f(1.0, pulse, pulse)  # Head color
+            else:
+                color_offset = (i * 0.1) % 1.0
+                r = 0.5 + 0.5 * math.sin(math.pi * 2 * (pulse + color_offset))
+                g = 0.5 + 0.5 * math.sin(math.pi * 2 * (pulse + color_offset + 0.33))
+                b = 0.5 + 0.5 * math.sin(math.pi * 2 * (pulse + color_offset + 0.66))
+                glColor3f(r, g, b)
         else:
-            glColor3f(snakeColor[0], snakeColor[1], snakeColor[2])
+            # Normal colors
+            if i == 0:
+                glColor3f(0.6, 0, 0)  # Red head
+            else:
+                glColor3f(snakeColor[0], snakeColor[1], snakeColor[2])
+                
         glTranslatef(segment[0], segment[1], segment[2])
         gluSphere(gluNewQuadric(), snakeRadius, 10, 10)
 
@@ -347,7 +370,7 @@ def prefillPositionHistory():
         positionHistory.append(snakeBody[0][:])
 
 def snakeForwardMovement():
-    global snakePos, snakeAngle, snakeLength, snakeSpeed, snakeBody, positionHistory
+    global snakePos, snakeAngle, snakeLength, snakeSpeed, snakeBody, positionHistory, cheatModeActive
 
     # Boundaries
     min_x = -COLS * GRID_LENGTH / 2 + 50
@@ -355,9 +378,12 @@ def snakeForwardMovement():
     min_y = -ROWS * GRID_LENGTH / 2 + 50
     max_y = ROWS * GRID_LENGTH / 2 - 50
 
+    # Calculate current speed (doubled in cheat mode)
+    current_speed = snakeSpeed * 2 if cheatModeActive else snakeSpeed
+
     # Move the head
-    snakeBody[0][0] -= snakeSpeed * math.sin(math.radians(-snakeAngle))
-    snakeBody[0][1] -= snakeSpeed * math.cos(math.radians(snakeAngle))
+    snakeBody[0][0] -= current_speed * math.sin(math.radians(-snakeAngle))
+    snakeBody[0][1] -= current_speed * math.cos(math.radians(snakeAngle))
 
     if snakeBody[0][0] < min_x:
         snakeBody[0][0] = min_x
@@ -481,10 +507,10 @@ def updatePoisonFoodLifetime():
 
 
 def foodCollision():
-    global foodList, snakeBody, snakeLength, score, gameOver, portalList
+    global foodList, snakeBody, snakeLength, score, gameOver, portalList, cheatBarProgress, cheatModeActive
 
     # Regular food collision
-    for food in foodList:
+    for food in foodList[:]:  # Create a copy of the list to avoid modification during iteration
         food_x, food_y, food_z = food
         head_x, head_y, head_z = snakeBody[0]
 
@@ -502,8 +528,15 @@ def foodCollision():
             # Spawn new food
             foodSpawn(1)
 
-            # Increase the score
-            score += 1
+            # Increase the score (10 points in cheat mode, 1 point normally)
+            if cheatModeActive:
+                score += 10
+            else:
+                score += 1
+                # Update cheat bar progress
+                cheatBarProgress += 1
+                if cheatBarProgress > cheatBarFull:
+                    cheatBarProgress = cheatBarFull
 
             # Spawn big food if the score is a multiple of 5
             if score % 5 == 0 and not bigFoodList:
@@ -514,7 +547,7 @@ def foodCollision():
                 foodSpawnPoison()
     
     # Big food collision 
-    for bigFood in bigFoodList:
+    for bigFood in bigFoodList[:]:  # Create a copy of the list
         bigFood_x, bigFood_y, bigFood_z = bigFood
         head_x, head_y, head_z = snakeBody[0]
 
@@ -523,13 +556,19 @@ def foodCollision():
             bigFoodList.remove(bigFood)
 
             # Increase the score
-            score += 5
+            if cheatModeActive:
+                score += 50  # More points in cheat mode
+            else:
+                score += 5
+                cheatBarProgress += 5
+                if cheatBarProgress > cheatBarFull:
+                    cheatBarProgress = cheatBarFull
 
             # Increase the snake length
             snakeLength += 1
     
     # Poison food collision 
-    for poisonFood in poisonFoodList:
+    for poisonFood in poisonFoodList[:]:  # Create a copy of the list
         poisonFood_x, poisonFood_y, poisonFood_z, _ = poisonFood
         head_x, head_y, head_z = snakeBody[0]
 
@@ -537,13 +576,17 @@ def foodCollision():
             # Remove the poison food from the list
             poisonFoodList.remove(poisonFood)
 
-            # Decrease the score
-            score -= 1
+            # Decrease the score only if not in cheat mode
+            if not cheatModeActive:
+                score -= 1
+                cheatBarProgress -= 1
+                if cheatBarProgress < 0:
+                    cheatBarProgress = 0
 
-            # Decrease the snake length
-            if snakeLength > 1:
-                snakeLength -= 1
-                snakeBody.pop()
+                # Decrease the snake length
+                if snakeLength > 1:
+                    snakeLength -= 1
+                    snakeBody.pop()
     
     # Obstacle collision
     for obstacle in obstacleList:
@@ -551,9 +594,10 @@ def foodCollision():
         head_x, head_y, head_z = snakeBody[0]
 
         if math.sqrt((obstacle_x - head_x) ** 2 + (obstacle_y - head_y) ** 2) < 50:
-            # Game over if obstacle is hit
-            gameOver = True
-            return
+            # Game over only if not in cheat mode
+            if not cheatModeActive:
+                gameOver = True
+                return
     
     # Portal collision
     if len(portalList) >= 2:
@@ -844,6 +888,63 @@ def portalSpawn():
     portalList.append((x1, y1, z1))
     portalList.append((x2, y2, z2))
 
+def drawCheatBar():
+    global cheatBarProgress, cheatBarFull, cheatModeActive, cheatModeStartTime, cheatModeDuration
+    
+    # Draw the cheat bar background
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    gluOrtho2D(0, 1000, 0, 800)
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    
+    # Draw background bar
+    glColor3f(0.3, 0.3, 0.3)
+    glBegin(GL_QUADS)
+    glVertex2f(10, 730)
+    glVertex2f(210, 730)
+    glVertex2f(210, 750)
+    glVertex2f(10, 750)
+    glEnd()
+    
+    # Calculate progress
+    progress_width = 0
+    
+    # Draw progress bar
+    if cheatModeActive:
+        # Show time remaining during cheat mode
+        remaining_time = max(0, cheatModeDuration - (time.time() - cheatModeStartTime))
+        progress_width = (remaining_time / cheatModeDuration) * 200
+        glColor3f(1.0, 0.0, 1.0)  # Purple for active cheat mode
+    else:
+        progress_width = (cheatBarProgress / cheatBarFull) * 200
+        if cheatBarProgress >= cheatBarFull:
+            glColor3f(0.0, 1.0, 0.0)  # Green when full
+        else:
+            glColor3f(1.0, 0.5, 0.0)  # Orange when filling
+    
+    glBegin(GL_QUADS)
+    glVertex2f(10, 730)
+    glVertex2f(10 + progress_width, 730)
+    glVertex2f(10 + progress_width, 750)
+    glVertex2f(10, 750)
+    glEnd()
+    
+    # Draw text
+    if cheatModeActive:
+        remaining_time = max(0, cheatModeDuration - (time.time() - cheatModeStartTime))
+        draw_text(220, 740, f"CHEAT MODE ACTIVE: {remaining_time:.1f}s")
+    elif cheatBarProgress >= cheatBarFull:
+        draw_text(220, 740, "CHEAT MODE READY - PRESS C")
+    else:
+        draw_text(220, 740, f"CHEAT MODE: {int(cheatBarProgress)}/{cheatBarFull}")
+    
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
 
 def specialKeyListener(key, x, y):
     global camera_pos
@@ -876,11 +977,18 @@ def mouseListener(button, state, x, y):
 
 def keyboardListener(key, x, y):
     global mainMenu, Easy, Medium, Hard, snakeAngle, gameOver
+    global cheatModeActive, cheatModeStartTime, cheatBarProgress
 
     # Restart game if it's over
     if gameOver and key == b'r':
         resetGame()
         return
+
+    # Activate cheat mode
+    if key == b'c' and cheatBarProgress >= cheatBarFull and not cheatModeActive:
+        cheatModeActive = True
+        cheatModeStartTime = time.time()
+        cheatBarProgress = 0
 
     # Move forward (W key)
     if key == b'w':
@@ -926,6 +1034,7 @@ def keyboardListener(key, x, y):
 def resetGame():
     global snakeBody, snakeLength, positionHistory, snakeAngle, score
     global foodList, bigFoodList, poisonFoodList, obstacleList, portalList, gameOver
+    global cheatModeActive, cheatBarProgress
     
     # Reset snake
     snakeBody = []
@@ -943,6 +1052,10 @@ def resetGame():
     # Reset game state
     score = 0
     gameOver = False
+    
+    # Reset cheat mode
+    cheatModeActive = False
+    cheatBarProgress = 0
     
     # Initialize snake
     drawSnakeBody()
@@ -988,6 +1101,13 @@ def setupCamera():
 
 def idle():
     global snakePos, snakeAngle, snakeLength, snakeSpeed, portalTimer
+    global cheatModeActive, cheatModeStartTime, cheatModeDuration
+
+    # Update cheat mode timer
+    if cheatModeActive:
+        current_time = time.time()
+        if current_time - cheatModeStartTime >= cheatModeDuration:
+            cheatModeActive = False
 
     # Snake Movement
     snakeForwardMovement()
@@ -1013,7 +1133,6 @@ def idle():
 
     glutPostRedisplay()
 
-
 def showScreen():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
@@ -1034,7 +1153,8 @@ def showScreen():
             drawBigFood(bigFood[0], bigFood[1], bigFood[2])
         
         for poisonFood in poisonFoodList:
-            drawPoisonFood(poisonFood[0], poisonFood[1], poisonFood[2])
+            poisonFood_x, poisonFood_y, poisonFood_z, _ = poisonFood
+            drawPoisonFood(poisonFood_x, poisonFood_y, poisonFood_z)
         
         # Draw obstacles
         for obstacle in obstacleList:
@@ -1045,6 +1165,9 @@ def showScreen():
             drawPortal(portal[0], portal[1], portal[2])
 
         draw_text(10, 770, f"Game Score: {score}")
+        
+        # Draw cheat mode bar
+        drawCheatBar()
 
         # Show game over message if game is over
         if gameOver:
@@ -1073,4 +1196,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
