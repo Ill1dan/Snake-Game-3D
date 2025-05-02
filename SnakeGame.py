@@ -36,6 +36,8 @@ snakeSpeed = 2
 snakeColor = (1, 0, 0)
 positionHistory = []
 
+baseSnakeSpeed = 2  # Initial base speed
+
 # Food variables
 foodList = []
 bigFoodList = []
@@ -370,7 +372,10 @@ def prefillPositionHistory():
         positionHistory.append(snakeBody[0][:])
 
 def snakeForwardMovement():
-    global snakePos, snakeAngle, snakeLength, snakeSpeed, snakeBody, positionHistory, cheatModeActive
+    global snakePos, snakeAngle, snakeLength, snakeSpeed, snakeBody, positionHistory, cheatModeActive, score, baseSnakeSpeed
+
+    # Calculate speed based on score (increase by 1 for every 30 points)
+    calculatedSpeed = baseSnakeSpeed + (score // 30) * 1
 
     # Boundaries
     min_x = -COLS * GRID_LENGTH / 2 + 50
@@ -379,7 +384,7 @@ def snakeForwardMovement():
     max_y = ROWS * GRID_LENGTH / 2 - 50
 
     # Calculate current speed (doubled in cheat mode)
-    current_speed = snakeSpeed * 2 if cheatModeActive else snakeSpeed
+    current_speed = calculatedSpeed * 2 if cheatModeActive else calculatedSpeed
 
     # Move the head
     snakeBody[0][0] -= current_speed * math.sin(math.radians(-snakeAngle))
@@ -398,13 +403,13 @@ def snakeForwardMovement():
     positionHistory.insert(0, snakeBody[0][:])
 
     # Keep the path history from growing too large
-    max_history_length = (snakeLength + 1) * (snakeRadius * 2) // snakeSpeed
+    max_history_length = (snakeLength + 1) * (snakeRadius * 2) // int(calculatedSpeed)
     if len(positionHistory) > max_history_length:
         positionHistory.pop()
 
     # Move body segments along the path history
     for i in range(1, len(snakeBody)):
-        index = i * (snakeRadius * 2) // snakeSpeed
+        index = i * (snakeRadius * 2) // int(calculatedSpeed)
         if index < len(positionHistory):
             snakeBody[i][0] = positionHistory[index][0]
             snakeBody[i][1] = positionHistory[index][1]
@@ -1034,7 +1039,7 @@ def keyboardListener(key, x, y):
 def resetGame():
     global snakeBody, snakeLength, positionHistory, snakeAngle, score
     global foodList, bigFoodList, poisonFoodList, obstacleList, portalList, gameOver
-    global cheatModeActive, cheatBarProgress
+    global cheatModeActive, cheatBarProgress, baseSnakeSpeed
     
     # Reset snake
     snakeBody = []
@@ -1056,6 +1061,9 @@ def resetGame():
     # Reset cheat mode
     cheatModeActive = False
     cheatBarProgress = 0
+    
+    # Reset snake speed
+    baseSnakeSpeed = 2
     
     # Initialize snake
     drawSnakeBody()
@@ -1165,7 +1173,8 @@ def showScreen():
             drawPortal(portal[0], portal[1], portal[2])
 
         draw_text(10, 770, f"Game Score: {score}")
-        
+        draw_text(200, 770, f"Speed: {baseSnakeSpeed + (score // 30) * 1:.1f}")
+
         # Draw cheat mode bar
         drawCheatBar()
 
