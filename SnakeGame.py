@@ -36,8 +36,6 @@ snakeSpeed = 2
 snakeColor = (1, 0, 0)
 positionHistory = []
 
-baseSnakeSpeed = 2  # Initial base speed
-
 # Food variables
 foodList = []
 bigFoodList = []
@@ -62,6 +60,9 @@ cheatBarFull = 20  # 20 points to fill the bar
 
 # Shell variables
 shellList = []
+
+# Brick Wall variables
+WallList = []
 
 def midPointLine(x0, y0, x1, y1):
     dx = x1 - x0
@@ -214,7 +215,7 @@ def draw_character_with_lines(x, y, width, height, char):
         drawLine(x, y + height, x + width / 2, y + height)  # Top horizontal line
         drawLine(x + width / 2, y + height, x + width, y + height / 2)  # Top-right diagonal
         drawLine(x + width, y + height / 2, x + width / 2, y + height / 2)  # Middle horizontal line
-        drawLine(x + width / 2, y + height / 2, x, y + height / 2)  # Connect to left
+        drawLine(x, y + height / 2, x + width / 2, y + height / 2)  # Connect to left
         drawLine(x + width / 2, y + height / 2, x + width, y)  # Diagonal leg
     elif char == " ":
         pass  # Space, no lines drawn
@@ -375,7 +376,7 @@ def prefillPositionHistory():
         positionHistory.append(snakeBody[0][:])
 
 def snakeForwardMovement():
-    global snakePos, snakeAngle, snakeLength, snakeSpeed, snakeBody, positionHistory, cheatModeActive, score, baseSnakeSpeed
+    global snakePos, snakeAngle, snakeLength, snakeSpeed, snakeBody, positionHistory, cheatModeActive, score
 
     # Calculate speed based on score (increase by 1 for every 30 points)
     calculatedSpeed = snakeSpeed + (score // 30)
@@ -489,6 +490,13 @@ def foodSpawn(totalFood=1):
                     valid_position = False
                     break
             
+            # Check if it's too close to walls
+            for wall in WallList:
+                wall_x, wall_y, wall_z, width, height = wall
+                if math.sqrt((x - wall_x) ** 2 + (y - wall_y) ** 2) < max(width, height) / 2:
+                    valid_position = False
+                    break
+            
             if not valid_position:
                 x = random.randint(int(min_x), int(max_x))
                 y = random.randint(int(min_y), int(max_y))
@@ -554,6 +562,13 @@ def foodSpawnBig():
             if math.sqrt((x - shell_x) ** 2 + (y - shell_y) ** 2) < 80:
                 valid_position = False
                 break
+        
+        # Check if it's too close to walls
+        for wall in WallList:
+            wall_x, wall_y, wall_z, width, height = wall
+            if math.sqrt((x - wall_x) ** 2 + (y - wall_y) ** 2) < max(width, height) / 2:
+                valid_position = False
+                break
             
         if not valid_position:
             x = random.randint(int(min_x), int(max_x))
@@ -617,6 +632,13 @@ def foodSpawnPoison():
         for shell in shellList:
             shell_x, shell_y, shell_z = shell
             if math.sqrt((x - shell_x) ** 2 + (y - shell_y) ** 2) < 80:
+                valid_position = False
+                break
+        
+        # Check if it's too close to walls
+        for wall in WallList:
+            wall_x, wall_y, wall_z, width, height = wall
+            if math.sqrt((x - wall_x) ** 2 + (y - wall_y) ** 2) < max(width, height) / 2:
                 valid_position = False
                 break
             
@@ -963,6 +985,13 @@ def shellSpawn():
             if math.sqrt((x - portal_x) ** 2 + (y - portal_y) ** 2) < 80:
                 valid_position = False
                 break
+        
+        # Check if it's too close to walls
+        for wall in WallList:
+            wall_x, wall_y, wall_z, width, height = wall
+            if math.sqrt((x - wall_x) ** 2 + (y - wall_y) ** 2) < max(width, height) / 2:
+                valid_position = False
+                break
 
         if not valid_position:
             x = random.randint(int(min_x), int(max_x))
@@ -1028,6 +1057,13 @@ def obstacleSpawn():
                 valid_position = False
                 break
         
+        # Check if it's too close to walls
+        for wall in WallList:
+            wall_x, wall_y, wall_z, width, height = wall
+            if math.sqrt((x - wall_x) ** 2 + (y - wall_y) ** 2) < max(width, height) / 2:
+                valid_position = False
+                break
+        
         if not valid_position:
             x = random.randint(int(min_x), int(max_x))
             y = random.randint(int(min_y), int(max_y))
@@ -1087,6 +1123,13 @@ def portalSpawn():
                 valid_position = False
                 break
         
+        # Check if it's too close to walls
+        for wall in WallList:
+            wall_x, wall_y, wall_z, width, height = wall
+            if math.sqrt((x1 - wall_x) ** 2 + (y1 - wall_y) ** 2) < max(width, height) / 2:
+                valid_position = False
+                break
+        
         if not valid_position:
             x1 = random.randint(int(min_x), int(max_x))
             y1 = random.randint(int(min_y), int(max_y))
@@ -1136,12 +1179,104 @@ def portalSpawn():
                 valid_position = False
                 break
         
+        # Check if it's too close to walls
+        for wall in WallList:
+            wall_x, wall_y, wall_z, width, height = wall
+            if math.sqrt((x2 - wall_x) ** 2 + (y2 - wall_y) ** 2) < max(width, height) / 2:
+                valid_position = False
+                break
+        
         if not valid_position:
             x2 = random.randint(int(min_x), int(max_x))
             y2 = random.randint(int(min_y), int(max_y))
     
     portalList.append((x1, y1, z1))
     portalList.append((x2, y2, z2))
+
+def drawWall(x, y, z, width, height):
+    glPushMatrix()
+    
+    # Wall
+    glColor3f(0.5, 0.7, 0.2)
+    glTranslatef(x, y, z + 35)
+    glScalef(width / 60, height / 60, 0.2)  # Reduce the z-axis scaling to make the wall thinner
+
+    # Draw a cube
+    glBegin(GL_QUADS)
+    # Front face
+    glVertex3f(-30, -30, -30)
+    glVertex3f(30, -30, -30)
+    glVertex3f(30, 30, -30)
+    glVertex3f(-30, 30, -30)
+    
+    # Back face
+    glVertex3f(-30, -30, 30)
+    glVertex3f(30, -30, 30)
+    glVertex3f(30, 30, 30)
+    glVertex3f(-30, 30, 30)
+    
+    # Left face
+    glVertex3f(-30, -30, -30)
+    glVertex3f(-30, 30, -30)
+    glVertex3f(-30, 30, 30)
+    glVertex3f(-30, -30, 30)
+    
+    # Right face
+    glVertex3f(30, -30, -30)
+    glVertex3f(30, 30, -30)
+    glVertex3f(30, 30, 30)
+    glVertex3f(30, -30, 30)
+    
+    # Top face
+    glVertex3f(-30, 30, -30)
+    glVertex3f(30, 30, -30)
+    glVertex3f(30, 30, 30)
+    glVertex3f(-30, 30, 30)
+    
+    # Bottom face
+    glVertex3f(-30, -30, -30)
+    glVertex3f(30, -30, -30)
+    glVertex3f(30, -30, 30)
+    glVertex3f(-30, -30, 30)
+    glEnd()
+    
+    glPopMatrix()
+
+def spawnWallEasy():
+    global WallList
+
+    # Clear any existing walls
+    WallList = []
+
+    # Boundaries
+    min_x = -COLS * GRID_LENGTH / 2
+    max_x = COLS * GRID_LENGTH / 2
+    min_y = -ROWS * GRID_LENGTH / 2
+    max_y = ROWS * GRID_LENGTH / 2
+    z = 0  # Fixed z-coordinate for the walls
+
+    segment_length = GRID_LENGTH  # Length of each wall segment
+    gap_size = GRID_LENGTH * 2  # Size of the gap in the middle
+
+    # Top wall (two segments with a gap in the middle)
+    for x in range(int(min_x), int(max_x), segment_length):
+        if x + segment_length / 2 < (min_x + max_x) / 2 - gap_size / 2 or x + segment_length / 2 > (min_x + max_x) / 2 + gap_size / 2:
+            WallList.append((x + segment_length / 2, max_y, z, segment_length, GRID_LENGTH))
+
+    # Bottom wall (two segments with a gap in the middle)
+    for x in range(int(min_x), int(max_x), segment_length):
+        if x + segment_length / 2 < (min_x + max_x) / 2 - gap_size / 2 or x + segment_length / 2 > (min_x + max_x) / 2 + gap_size / 2:
+            WallList.append((x + segment_length / 2, min_y, z, segment_length, GRID_LENGTH))
+
+    # Left wall (two segments with a gap in the middle)
+    for y in range(int(min_y), int(max_y), segment_length):
+        if y + segment_length / 2 < (min_y + max_y) / 2 - gap_size / 2 or y + segment_length / 2 > (min_y + max_y) / 2 + gap_size / 2:
+            WallList.append((min_x, y + segment_length / 2, z, GRID_LENGTH, segment_length))
+
+    # Right wall (two segments with a gap in the middle)
+    for y in range(int(min_y), int(max_y), segment_length):
+        if y + segment_length / 2 < (min_y + max_y) / 2 - gap_size / 2 or y + segment_length / 2 > (min_y + max_y) / 2 + gap_size / 2:
+            WallList.append((max_x, y + segment_length / 2, z, GRID_LENGTH, segment_length))
 
 def drawCheatBar():
     global cheatBarProgress, cheatBarFull, cheatModeActive, cheatModeStartTime, cheatModeDuration
@@ -1287,9 +1422,9 @@ def keyboardListener(key, x, y):
         resetGame()
 
 def resetGame():
-    global snakeBody, snakeLength, positionHistory, snakeAngle, score
+    global snakeBody, snakeLength, positionHistory, snakeAngle, score, snakeSpeed
     global foodList, bigFoodList, poisonFoodList, obstacleList, portalList, gameOver
-    global cheatModeActive, cheatBarProgress, baseSnakeSpeed
+    global cheatModeActive, cheatBarProgress
     
     # Reset snake
     snakeBody = []
@@ -1313,7 +1448,7 @@ def resetGame():
     cheatBarProgress = 0
     
     # Reset snake speed
-    baseSnakeSpeed = 2
+    snakeAngle = 2
     
     # Initialize snake
     drawSnakeBody()
@@ -1418,6 +1553,10 @@ def showScreen():
             poisonFood_x, poisonFood_y, poisonFood_z, _ = poisonFood
             drawPoisonFood(poisonFood_x, poisonFood_y, poisonFood_z)
         
+        # Draw the Brick Wall
+        for wall in WallList:
+            drawWall(wall[0], wall[1], wall[2], wall[3], wall[4])
+        
         # Draw shells
         for shell in shellList:
             drawShell(shell[0], shell[1], shell[2])
@@ -1431,7 +1570,7 @@ def showScreen():
             drawPortal(portal[0], portal[1], portal[2])
 
         draw_text(10, 770, f"Game Score: {score}")
-        draw_text(200, 770, f"Speed: {baseSnakeSpeed + (score // 30) * 1:.1f}")
+        draw_text(200, 770, f"Speed: {snakeSpeed + (score // 30) * 1:.1f}")
 
         # Draw cheat mode bar
         drawCheatBar()
@@ -1450,6 +1589,7 @@ def main():
     glutInitWindowSize(1000, 800)
     glutInitWindowPosition(0, 0)
     wind = glutCreateWindow(b"Snake Game Project")
+    spawnWallEasy()
     drawSnakeBody()
     prefillPositionHistory()
     foodSpawn()
