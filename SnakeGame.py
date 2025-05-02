@@ -375,7 +375,7 @@ def snakeForwardMovement():
     global snakePos, snakeAngle, snakeLength, snakeSpeed, snakeBody, positionHistory, cheatModeActive, score, baseSnakeSpeed
 
     # Calculate speed based on score (increase by 1 for every 30 points)
-    calculatedSpeed = baseSnakeSpeed + (score // 30) * 1
+    calculatedSpeed = snakeSpeed + (score // 30)
 
     # Boundaries
     min_x = -COLS * GRID_LENGTH / 2 + 50
@@ -440,11 +440,46 @@ def foodSpawn(totalFood=1):
         x = random.randint(int(min_x), int(max_x))
         y = random.randint(int(min_y), int(max_y))
         z = 0
-
-        for segment in snakeBody:
-            segment_x, segment_y, segment_z = segment
-
-            while (x >= segment_x - 30 and x <= segment_x + 30) and (y >= segment_y - 30 and y <= segment_y + 30):
+        
+        # Ensure food don't spawn on the snake or other game objects
+        valid_position = False
+        while not valid_position:
+            valid_position = True
+            
+            # Check if it's too close to the snake
+            for segment in snakeBody:
+                segment_x, segment_y, segment_z = segment
+                if math.sqrt((x - segment_x) ** 2 + (y - segment_y) ** 2) < 60:
+                    valid_position = False
+                    break
+            
+            # Check if it's too close to other game objects
+            for food in foodList + bigFoodList + poisonFoodList:
+                # Handle different structures of foodList and poisonFoodList
+                if len(food) == 4:  # This is a poison food with spawn time
+                    food_x, food_y, food_z, _ = food
+                else:
+                    food_x, food_y, food_z = food
+                    
+                if math.sqrt((x - food_x) ** 2 + (y - food_y) ** 2) < 80:
+                    valid_position = False
+                    break
+                    
+            # Check if it's too close to other obstacles
+            for obstacle in obstacleList:
+                obs_x, obs_y, obs_z = obstacle
+                if math.sqrt((x - obs_x) ** 2 + (y - obs_y) ** 2) < 80:
+                    valid_position = False
+                    break
+            
+            # Check if it's too close to portals
+            for portal in portalList:
+                portal_x, portal_y, portal_z = portal
+                if math.sqrt((x - portal_x) ** 2 + (y - portal_y) ** 2) < 80:
+                    valid_position = False
+                    break
+            
+            if not valid_position:
                 x = random.randint(int(min_x), int(max_x))
                 y = random.randint(int(min_y), int(max_y))
 
@@ -465,11 +500,45 @@ def foodSpawnBig():
     y = random.randint(int(min_y), int(max_y))
     z = 0
 
-    # Ensure big food does not spawn on the snake
-    for segment in snakeBody:
-        segment_x, segment_y, segment_z = segment
-
-        while (x >= segment_x - 30 and x <= segment_x + 30) and (y >= segment_y - 30 and y <= segment_y + 30):
+    # Ensure Big food don't spawn on the snake or other game objects
+    valid_position = False
+    while not valid_position:
+        valid_position = True
+            
+        # Check if it's too close to the snake
+        for segment in snakeBody:
+            segment_x, segment_y, segment_z = segment
+            if math.sqrt((x - segment_x) ** 2 + (y - segment_y) ** 2) < 60:
+                valid_position = False
+                break
+            
+        # Check if it's too close to other game objects
+        for food in foodList + bigFoodList + poisonFoodList:
+            # Handle different structures of foodList and poisonFoodList
+            if len(food) == 4:  # This is a poison food with spawn time
+                food_x, food_y, food_z, _ = food
+            else:
+                food_x, food_y, food_z = food
+                    
+            if math.sqrt((x - food_x) ** 2 + (y - food_y) ** 2) < 80:
+                valid_position = False
+                break
+                    
+        # Check if it's too close to other obstacles
+        for obstacle in obstacleList:
+            obs_x, obs_y, obs_z = obstacle
+            if math.sqrt((x - obs_x) ** 2 + (y - obs_y) ** 2) < 80:
+                valid_position = False
+                break
+            
+        # Check if it's too close to portals
+        for portal in portalList:
+            portal_x, portal_y, portal_z = portal
+            if math.sqrt((x - portal_x) ** 2 + (y - portal_y) ** 2) < 80:
+                valid_position = False
+                break
+            
+        if not valid_position:
             x = random.randint(int(min_x), int(max_x))
             y = random.randint(int(min_y), int(max_y))
 
@@ -489,11 +558,45 @@ def foodSpawnPoison():
     y = random.randint(int(min_y), int(max_y))
     z = 0
 
-    # Ensure poison food does not spawn on the snake
-    for segment in snakeBody:
-        segment_x, segment_y, segment_z = segment
-
-        while (x >= segment_x - 30 and x <= segment_x + 30) and (y >= segment_y - 30 and y <= segment_y + 30):
+    # Ensure Big food don't spawn on the snake or other game objects
+    valid_position = False
+    while not valid_position:
+        valid_position = True
+            
+        # Check if it's too close to the snake
+        for segment in snakeBody:
+            segment_x, segment_y, segment_z = segment
+            if math.sqrt((x - segment_x) ** 2 + (y - segment_y) ** 2) < 60:
+                valid_position = False
+                break
+            
+        # Check if it's too close to other game objects
+        for food in foodList + bigFoodList + poisonFoodList:
+            # Handle different structures of foodList and poisonFoodList
+            if len(food) == 4:  # This is a poison food with spawn time
+                food_x, food_y, food_z, _ = food
+            else:
+                food_x, food_y, food_z = food
+                    
+            if math.sqrt((x - food_x) ** 2 + (y - food_y) ** 2) < 80:
+                valid_position = False
+                break
+                    
+        # Check if it's too close to other obstacles
+        for obstacle in obstacleList:
+            obs_x, obs_y, obs_z = obstacle
+            if math.sqrt((x - obs_x) ** 2 + (y - obs_y) ** 2) < 80:
+                valid_position = False
+                break
+            
+        # Check if it's too close to portals
+        for portal in portalList:
+            portal_x, portal_y, portal_z = portal
+            if math.sqrt((x - portal_x) ** 2 + (y - portal_y) ** 2) < 80:
+                valid_position = False
+                break
+            
+        if not valid_position:
             x = random.randint(int(min_x), int(max_x))
             y = random.randint(int(min_y), int(max_y))
 
@@ -511,7 +614,7 @@ def updatePoisonFoodLifetime():
     ]
 
 
-def foodCollision():
+def Collision():
     global foodList, snakeBody, snakeLength, score, gameOver, portalList, cheatBarProgress, cheatModeActive
 
     # Regular food collision
@@ -940,11 +1043,11 @@ def drawCheatBar():
     # Draw text
     if cheatModeActive:
         remaining_time = max(0, cheatModeDuration - (time.time() - cheatModeStartTime))
-        draw_text(220, 740, f"CHEAT MODE ACTIVE: {remaining_time:.1f}s")
+        draw_text(220, 733, f"CHEAT MODE ACTIVE: {remaining_time:.1f}s")
     elif cheatBarProgress >= cheatBarFull:
-        draw_text(220, 740, "CHEAT MODE READY - PRESS C")
+        draw_text(220, 733, "CHEAT MODE READY - PRESS C")
     else:
-        draw_text(220, 740, f"CHEAT MODE: {int(cheatBarProgress)}/{cheatBarFull}")
+        draw_text(220, 733, f"CHEAT MODE: {int(cheatBarProgress)}/{cheatBarFull}")
     
     glPopMatrix()
     glMatrixMode(GL_PROJECTION)
@@ -1124,7 +1227,7 @@ def idle():
     foodPulseWave()
 
     # Food Collision and Spawn
-    foodCollision()
+    Collision()
 
     # Update poison food lifetime
     updatePoisonFoodLifetime()
