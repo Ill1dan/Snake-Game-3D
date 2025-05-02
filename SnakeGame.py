@@ -27,7 +27,6 @@ firstPerson = False
 score = 0
 
 # Snake variables
-snakePos = [0, 0, 0]
 snakeLength = 1
 snakeRadius = 30
 snakeBody = []
@@ -35,6 +34,7 @@ snakeAngle = 0
 snakeSpeed = 2
 snakeColor = (1, 0, 0)
 positionHistory = []
+snakeLevelSpeed = [5, 3, 2]
 
 # Food variables
 foodList = []
@@ -325,6 +325,58 @@ def levelEasy():
 
     glPopMatrix()
 
+def levelMedium():
+    tile_size = GRID_LENGTH
+    rows = ROWS
+    cols = COLS
+
+    glPushMatrix()
+    glTranslatef(-cols * tile_size / 2, -rows * tile_size / 2, 0)
+
+    for i in range(rows):
+        for j in range(cols):
+            # Alternate colors
+            if (i + j) % 2 == 0:
+                glColor3f(0.3, 0.3, 0.6)  # Darker blue-gray
+            else:
+                glColor3f(0.7, 0.7, 0.9)  # Lighter blue-gray
+
+            # Draw a tile
+            glBegin(GL_QUADS)
+            glVertex3f(j * tile_size, i * tile_size, 0)
+            glVertex3f((j + 1) * tile_size, i * tile_size, 0)
+            glVertex3f((j + 1) * tile_size, (i + 1) * tile_size, 0)
+            glVertex3f(j * tile_size, (i + 1) * tile_size, 0)
+            glEnd()
+
+    glPopMatrix()
+
+def levelHard():
+    tile_size = GRID_LENGTH
+    rows = ROWS
+    cols = COLS
+
+    glPushMatrix()
+    glTranslatef(-cols * tile_size / 2, -rows * tile_size / 2, 0)
+
+    for i in range(rows):
+        for j in range(cols):
+            # Alternate colors
+            if (i + j) % 2 == 0:
+                glColor3f(0.5, 0.2, 0.2)  # Dark red
+            else:
+                glColor3f(0.8, 0.5, 0.5)  # Light red
+
+            # Draw a tile
+            glBegin(GL_QUADS)
+            glVertex3f(j * tile_size, i * tile_size, 0)
+            glVertex3f((j + 1) * tile_size, i * tile_size, 0)
+            glVertex3f((j + 1) * tile_size, (i + 1) * tile_size, 0)
+            glVertex3f(j * tile_size, (i + 1) * tile_size, 0)
+            glEnd()
+
+    glPopMatrix()
+
 def drawSnake():
     global snakeBody, cheatModeActive
     
@@ -376,7 +428,16 @@ def prefillPositionHistory():
         positionHistory.append(snakeBody[0][:])
 
 def snakeForwardMovement():
-    global snakePos, snakeAngle, snakeLength, snakeSpeed, snakeBody, positionHistory, cheatModeActive, score
+    global snakeAngle, snakeLength, snakeSpeed, snakeBody, positionHistory, cheatModeActive, score, Easy, Medium, Hard
+
+    if Easy:
+        speedReduction = snakeLevelSpeed[0]
+    elif Medium:
+        speedReduction = snakeLevelSpeed[1]
+    elif Hard:
+        speedReduction = snakeLevelSpeed[2]
+    else:
+        speedReduction = 1
 
     # Calculate speed based on score (increase by 1 for every 30 points)
     calculatedSpeed = snakeSpeed + (score // 30)
@@ -391,8 +452,8 @@ def snakeForwardMovement():
     current_speed = calculatedSpeed * 2 if cheatModeActive else calculatedSpeed
 
     # Move the head
-    snakeBody[0][0] -= current_speed * math.sin(math.radians(-snakeAngle)) / 5
-    snakeBody[0][1] -= current_speed * math.cos(math.radians(snakeAngle)) / 5
+    snakeBody[0][0] -= current_speed * math.sin(math.radians(-snakeAngle)) / speedReduction
+    snakeBody[0][1] -= current_speed * math.cos(math.radians(snakeAngle)) / speedReduction
 
     if snakeBody[0][0] < min_x:
         snakeBody[0][0] = min_x
@@ -493,7 +554,7 @@ def foodSpawn(totalFood=1):
             # Check if it's too close to walls
             for wall in WallList:
                 wall_x, wall_y, wall_z, width, height = wall
-                if math.sqrt((x - wall_x) ** 2 + (y - wall_y) ** 2) < max(width, height) / 2:
+                if (wall_x - width / 2 <= x <= wall_x + width / 2) and (wall_y - height / 2 <= y <= wall_y + height / 2):
                     valid_position = False
                     break
             
@@ -566,7 +627,7 @@ def foodSpawnBig():
         # Check if it's too close to walls
         for wall in WallList:
             wall_x, wall_y, wall_z, width, height = wall
-            if math.sqrt((x - wall_x) ** 2 + (y - wall_y) ** 2) < max(width, height) / 2:
+            if (wall_x - width / 2 <= x <= wall_x + width / 2) and (wall_y - height / 2 <= y <= wall_y + height / 2):
                 valid_position = False
                 break
             
@@ -638,7 +699,7 @@ def foodSpawnPoison():
         # Check if it's too close to walls
         for wall in WallList:
             wall_x, wall_y, wall_z, width, height = wall
-            if math.sqrt((x - wall_x) ** 2 + (y - wall_y) ** 2) < max(width, height) / 2:
+            if (wall_x - width / 2 <= x <= wall_x + width / 2) and (wall_y - height / 2 <= y <= wall_y + height / 2):
                 valid_position = False
                 break
             
@@ -736,6 +797,10 @@ def Collision():
                 cheatBarProgress -= 1
                 if cheatBarProgress < 0:
                     cheatBarProgress = 0
+
+                if snakeLength < 0:
+                    gameOver = True
+                    return
 
                 # Decrease the snake length
                 if snakeLength > 1:
@@ -1000,7 +1065,7 @@ def shellSpawn():
         # Check if it's too close to walls
         for wall in WallList:
             wall_x, wall_y, wall_z, width, height = wall
-            if math.sqrt((x - wall_x) ** 2 + (y - wall_y) ** 2) < max(width, height) / 2:
+            if (wall_x - width / 2 <= x <= wall_x + width / 2) and (wall_y - height / 2 <= y <= wall_y + height / 2):
                 valid_position = False
                 break
 
@@ -1071,7 +1136,7 @@ def obstacleSpawn():
         # Check if it's too close to walls
         for wall in WallList:
             wall_x, wall_y, wall_z, width, height = wall
-            if math.sqrt((x - wall_x) ** 2 + (y - wall_y) ** 2) < max(width, height) / 2:
+            if (wall_x - width / 2 <= x <= wall_x + width / 2) and (wall_y - height / 2 <= y <= wall_y + height / 2):
                 valid_position = False
                 break
         
@@ -1137,7 +1202,7 @@ def portalSpawn():
         # Check if it's too close to walls
         for wall in WallList:
             wall_x, wall_y, wall_z, width, height = wall
-            if math.sqrt((x1 - wall_x) ** 2 + (y1 - wall_y) ** 2) < max(width, height) / 2:
+            if (wall_x - width / 2 <= x1 <= wall_x + width / 2) and (wall_y - height / 2 <= y1 <= wall_y + height / 2):
                 valid_position = False
                 break
         
@@ -1193,7 +1258,7 @@ def portalSpawn():
         # Check if it's too close to walls
         for wall in WallList:
             wall_x, wall_y, wall_z, width, height = wall
-            if math.sqrt((x2 - wall_x) ** 2 + (y2 - wall_y) ** 2) < max(width, height) / 2:
+            if (wall_x - width / 2 <= x2 <= wall_x + width / 2) and (wall_y - height / 2 <= y2 <= wall_y + height / 2):
                 valid_position = False
                 break
         
@@ -1289,6 +1354,89 @@ def spawnWallEasy():
         if y + segment_length / 2 < (min_y + max_y) / 2 - gap_size / 2 or y + segment_length / 2 > (min_y + max_y) / 2 + gap_size / 2:
             WallList.append((max_x, y + segment_length / 2, z, GRID_LENGTH, segment_length))
 
+def spawnWallMedium():
+    global WallList
+
+    # Clear any existing walls
+    WallList = []
+
+    # Boundaries
+    min_x = -COLS * GRID_LENGTH / 2
+    max_x = COLS * GRID_LENGTH / 2
+    min_y = -ROWS * GRID_LENGTH / 2
+    max_y = ROWS * GRID_LENGTH / 2
+    z = 0  # Fixed z-coordinate for the walls
+
+    segment_length = GRID_LENGTH  # Length of each wall segment
+    gap_size = GRID_LENGTH * 2  # Size of the gap in the middle
+
+    # Outer walls (with gaps in the middle)
+    for x in range(int(min_x), int(max_x), segment_length):
+        if x + segment_length / 2 < (min_x + max_x) / 2 - gap_size / 2 or x + segment_length / 2 > (min_x + max_x) / 2 + gap_size / 2:
+            WallList.append((x + segment_length / 2, max_y, z, segment_length, GRID_LENGTH))  # Top wall
+            WallList.append((x + segment_length / 2, min_y, z, segment_length, GRID_LENGTH))  # Bottom wall
+
+    for y in range(int(min_y), int(max_y), segment_length):
+        if y + segment_length / 2 < (min_y + max_y) / 2 - gap_size / 2 or y + segment_length / 2 > (min_y + max_y) / 2 + gap_size / 2:
+            WallList.append((min_x, y + segment_length / 2, z, GRID_LENGTH, segment_length))  # Left wall
+            WallList.append((max_x, y + segment_length / 2, z, GRID_LENGTH, segment_length))  # Right wall
+
+    # Inner horizontal walls (smaller total size)
+    for x in range(int(min_x) + GRID_LENGTH * 2, int(max_x) - GRID_LENGTH * 2, segment_length):
+        WallList.append((x + segment_length / 2, (min_y + max_y) / 4, z, segment_length, GRID_LENGTH * 0.5))  # Top inner wall
+        WallList.append((x + segment_length / 2, (3 * (min_y + max_y)) / 4, z, segment_length, GRID_LENGTH * 0.5))  # Bottom inner wall
+
+    # Inner vertical walls (smaller total size)
+    for y in range(int(min_y) + GRID_LENGTH * 2, int(max_y) - GRID_LENGTH * 2, segment_length):
+        WallList.append(((min_x + max_x) / 4, y + segment_length / 2, z, GRID_LENGTH * 0.5, segment_length))  # Left inner wall
+        WallList.append(((3 * (min_x + max_x)) / 4, y + segment_length / 2, z, GRID_LENGTH * 0.5, segment_length))  # Right inner wall
+
+def spawnWallHard():
+    global WallList
+
+    # Clear any existing walls
+    WallList = []
+
+    # Boundaries
+    min_x = -COLS * GRID_LENGTH / 2
+    max_x = COLS * GRID_LENGTH / 2
+    min_y = -ROWS * GRID_LENGTH / 2
+    max_y = ROWS * GRID_LENGTH / 2
+    z = 0  # Fixed z-coordinate for the walls
+
+    segment_length = GRID_LENGTH  # Length of each wall segment
+    gap_size = GRID_LENGTH * 2  # Size of the gap in the middle
+
+    # Outer walls (no gaps)
+    for x in range(int(min_x), int(max_x), segment_length):
+        WallList.append((x + segment_length / 2, max_y, z, segment_length, GRID_LENGTH))  # Top wall
+        WallList.append((x + segment_length / 2, min_y, z, segment_length, GRID_LENGTH))  # Bottom wall
+
+    for y in range(int(min_y), int(max_y), segment_length):
+        WallList.append((min_x, y + segment_length / 2, z, GRID_LENGTH, segment_length))  # Left wall
+        WallList.append((max_x, y + segment_length / 2, z, GRID_LENGTH, segment_length))  # Right wall
+
+    # Inner horizontal walls (smaller total size)
+    for x in range(int(min_x) + GRID_LENGTH * 2, int(max_x) - GRID_LENGTH * 2, segment_length):
+        WallList.append((x + segment_length / 2, (min_y + max_y) / 4, z, segment_length, GRID_LENGTH * 0.5))  # Top inner wall
+        WallList.append((x + segment_length / 2, (3 * (min_y + max_y)) / 4, z, segment_length, GRID_LENGTH * 0.5))  # Bottom inner wall
+
+    # Inner vertical walls (smaller total size)
+    for y in range(int(min_y) + GRID_LENGTH * 2, int(max_y) - GRID_LENGTH * 2, segment_length):
+        WallList.append(((min_x + max_x) / 4, y + segment_length / 2, z, GRID_LENGTH * 0.5, segment_length))  # Left inner wall
+        WallList.append(((3 * (min_x + max_x)) / 4, y + segment_length / 2, z, GRID_LENGTH * 0.5, segment_length))  # Right inner wall
+
+    # Diagonal walls (for added complexity)
+    for i in range(1, 4):
+        # Top-left to bottom-right
+        WallList.append((min_x + i * GRID_LENGTH, min_y + i * GRID_LENGTH, z, GRID_LENGTH, GRID_LENGTH))  # Bottom-left to top-right
+        WallList.append((max_x - i * GRID_LENGTH, min_y + i * GRID_LENGTH, z, GRID_LENGTH, GRID_LENGTH))  # Bottom-right to top-left
+
+        # Bottom-left to top-right
+        WallList.append((min_x + i * GRID_LENGTH, max_y - i * GRID_LENGTH, z, GRID_LENGTH, GRID_LENGTH))  # Top-left to bottom-right
+        WallList.append((max_x - i * GRID_LENGTH, max_y - i * GRID_LENGTH, z, GRID_LENGTH, GRID_LENGTH))  # Top-right to bottom-left
+
+
 def drawCheatBar():
     global cheatBarProgress, cheatBarFull, cheatModeActive, cheatModeStartTime, cheatModeDuration
     
@@ -1377,8 +1525,13 @@ def mouseListener(button, state, x, y):
         firstPerson = not firstPerson
 
 def keyboardListener(key, x, y):
-    global mainMenu, Easy, Medium, Hard, snakeAngle, gameOver
+    global mainMenu, Easy, Medium, Hard, snakeAngle, gameOver, gamePaused
     global cheatModeActive, cheatModeStartTime, cheatBarProgress
+
+    # Pause game (P key)
+    if key == b'p':
+        gamePaused = not gamePaused
+        return
 
     # Restart game if it's over
     if gameOver and key == b'r':
@@ -1459,7 +1612,7 @@ def resetGame():
     cheatBarProgress = 0
     
     # Reset snake speed
-    snakeAngle = 2
+    snakeSpeed = 2
     
     # Initialize snake
     drawSnakeBody()
@@ -1504,44 +1657,47 @@ def setupCamera():
                 0, 0, 1)
 
 def idle():
-    global snakePos, snakeAngle, snakeLength, snakeSpeed, portalTimer
+    global snakeAngle, snakeLength, snakeSpeed, portalTimer
     global cheatModeActive, cheatModeStartTime, cheatModeDuration
 
-    # Update cheat mode timer
-    if cheatModeActive:
+    if not gamePaused and not gameOver:
+        # Update cheat mode timer
+        if cheatModeActive:
+            current_time = time.time()
+            if current_time - cheatModeStartTime >= cheatModeDuration:
+                cheatModeActive = False
+
+        # Snake Movement
+        snakeForwardMovement()
+
+        # Food Pulse Wave
+        foodPulseWave()
+
+        # Food Collision and Spawn
+        Collision()
+
+        # Update poison food lifetime
+        updatePoisonFoodLifetime()
+
+        # Spawn obstacles randomly (about every 40 seconds)
+        if random.random() < 0.0003:
+            obstacleSpawn()
+        
+        # Spawn portals randomly (about every 30 seconds)
         current_time = time.time()
-        if current_time - cheatModeStartTime >= cheatModeDuration:
-            cheatModeActive = False
-
-    # Snake Movement
-    snakeForwardMovement()
-
-    # Food Pulse Wave
-    foodPulseWave()
-
-    # Food Collision and Spawn
-    Collision()
-
-    # Update poison food lifetime
-    updatePoisonFoodLifetime()
-
-    # Spawn obstacles randomly (about every 40 seconds)
-    if random.random() < 0.0003:
-        obstacleSpawn()
-    
-    # Spawn portals randomly (about every 30 seconds)
-    current_time = time.time()
-    if len(portalList) == 0 and current_time - portalTimer > portalSpawnInterval:
-        portalSpawn()
-        portalTimer = current_time
-    
-    # Spawn shell every 30 points
-    if score % 30 == 0 and score > 0 and len(shellList) == 0:
-        shellSpawn()
+        if len(portalList) == 0 and current_time - portalTimer > portalSpawnInterval:
+            portalSpawn()
+            portalTimer = current_time
+        
+        # Spawn shell every 30 points
+        if score % 30 == 0 and score > 0 and len(shellList) == 0:
+            shellSpawn()
 
     glutPostRedisplay()
 
 def showScreen():
+    global snakeBody
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     glViewport(0, 0, 1000, 800)
@@ -1549,8 +1705,30 @@ def showScreen():
 
     if mainMenu:
         mainMenu()
+        foodSpawn()
     elif Easy:
         levelEasy()
+        spawnWallEasy()
+        
+    elif Medium:
+        levelMedium()
+        spawnWallMedium()
+
+        snakeX, snakeY, snakeZ = snakeBody[0]
+        if snakeX == 0 and snakeY == 0:
+            snakeBody[0] = [-250, -250, 0]
+
+    elif Hard:
+        levelHard()
+        spawnWallHard()
+
+        snakeX, snakeY, snakeZ = snakeBody[0]
+        if snakeX == 0 and snakeY == 0:
+            snakeBody[0] = [200, 400, 0]
+
+    
+    if Easy or Medium or Hard:
+        # Draw the snake
         drawSnake()
 
         # Draw the food
@@ -1567,7 +1745,7 @@ def showScreen():
         # Draw the Brick Wall
         for wall in WallList:
             drawWall(wall[0], wall[1], wall[2], wall[3], wall[4])
-        
+
         # Draw shells
         for shell in shellList:
             drawShell(shell[0], shell[1], shell[2])
@@ -1600,10 +1778,8 @@ def main():
     glutInitWindowSize(1000, 800)
     glutInitWindowPosition(0, 0)
     wind = glutCreateWindow(b"Snake Game Project")
-    spawnWallEasy()
     drawSnakeBody()
     prefillPositionHistory()
-    foodSpawn()
     glutDisplayFunc(showScreen)
     glutKeyboardFunc(keyboardListener)
     glutSpecialFunc(specialKeyListener)
