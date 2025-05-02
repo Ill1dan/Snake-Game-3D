@@ -554,13 +554,13 @@ def snakeForwardMovement():
     snakeBody[0][1] -= current_speed * math.cos(math.radians(snakeAngle)) / speedReduction
 
     if snakeBody[0][0] < min_x:
-        snakeBody[0][0] = min_x
-    if snakeBody[0][0] > max_x:
         snakeBody[0][0] = max_x
+    if snakeBody[0][0] > max_x:
+        snakeBody[0][0] = min_x
     if snakeBody[0][1] < min_y:
-        snakeBody[0][1] = min_y
-    if snakeBody[0][1] > max_y:
         snakeBody[0][1] = max_y
+    if snakeBody[0][1] > max_y:
+        snakeBody[0][1] = min_y
 
     # Record the current head position
     positionHistory.insert(0, snakeBody[0][:])
@@ -986,6 +986,7 @@ def Collision():
                     
                 # Remove the shell
                 shellList.remove(shell)
+    
 
 def foodPulseWave():
     global foodPulseTime, foodPulse
