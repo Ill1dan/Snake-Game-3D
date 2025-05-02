@@ -450,6 +450,10 @@ def levelMedium():
     glPopMatrix()
 
 def levelHard():
+    global GRID_LENGTH
+
+    GRID_LENGTH = 100
+
     tile_size = GRID_LENGTH
     rows = ROWS
     cols = COLS
