@@ -17,7 +17,7 @@ ROWS = 10
 GRID_LENGTH = 150
 
 # Game variables
-mainMenu = True
+Menu = True
 Easy = False
 Medium = False
 Hard = False
@@ -242,6 +242,68 @@ def draw_character_with_lines(x, y, width, height, char):
         drawLine(x, y, x, y + height)  # Left vertical line
         drawLine(x + width, y, x + width, y + height)  # Right vertical line
         drawLine(x, y + height / 2, x + width, y + height / 2)  # Middle horizontal line
+    elif char == "G":
+        drawLine(x + width, y + height, x, y + height)  # Top horizontal line
+        drawLine(x, y + height, x, y)  # Left vertical line
+        drawLine(x, y, x + width, y)  # Bottom horizontal line
+        drawLine(x + width, y, x + width, y + height / 2)  # Right vertical (bottom half)
+        drawLine(x + width, y + height / 2, x + width / 2, y + height / 2)  # Middle horizontal line
+    elif char == "O":
+        drawLine(x, y, x, y + height)  # Left vertical line
+        drawLine(x, y + height, x + width, y + height)  # Top horizontal line
+        drawLine(x + width, y + height, x + width, y)  # Right vertical line
+        drawLine(x + width, y, x, y)  # Bottom horizontal line
+    elif char == "V":
+        drawLine(x, y + height, x + width / 2, y)  # Left diagonal
+        drawLine(x + width / 2, y, x + width, y + height)  # Right diagonal
+    elif char == "4":
+        drawLine(x, y + height, x, y + height / 2)  # Left vertical line
+        drawLine(x, y + height / 2, x + width, y + height / 2)  # Middle horizontal line
+        drawLine(x + width, y, x + width, y + height)  # Right vertical line
+    elif char == "5":
+        drawLine(x + width, y + height, x, y + height)  # Top horizontal line
+        drawLine(x, y + height, x, y + height / 2)  # Left vertical (top half)
+        drawLine(x, y + height / 2, x + width, y + height / 2)  # Middle horizontal line
+        drawLine(x + width, y + height / 2, x + width, y)  # Right vertical (bottom half)
+        drawLine(x + width, y, x, y)  # Bottom horizontal line
+    elif char == "6":
+        drawLine(x + width, y + height, x, y + height)  # Top horizontal line
+        drawLine(x, y + height, x, y)  # Left vertical line
+        drawLine(x, y, x + width, y)  # Bottom horizontal line
+        drawLine(x + width, y, x + width, y + height / 2)  # Right vertical (bottom half)
+        drawLine(x + width, y + height / 2, x, y + height / 2)  # Middle horizontal line
+    elif char == "7":
+        drawLine(x, y + height, x + width, y + height)  # Top horizontal line
+        drawLine(x + width, y + height, x, y)  # Diagonal line
+    elif char == "8":
+        drawLine(x, y + height, x + width, y + height)  # Top horizontal line
+        drawLine(x, y + height, x, y)  # Left vertical line
+        drawLine(x, y, x + width, y)  # Bottom horizontal line
+        drawLine(x + width, y, x + width, y + height)  # Right vertical line
+        drawLine(x, y + height / 2, x + width, y + height / 2)  # Middle horizontal line
+    elif char == "9":
+        drawLine(x, y + height, x + width, y + height)  # Top horizontal line
+        drawLine(x, y + height, x, y + height / 2)  # Left vertical (top half)
+        drawLine(x, y + height / 2, x + width, y + height / 2)  # Middle horizontal line
+        drawLine(x + width, y + height / 2, x + width, y)  # Right vertical line
+        drawLine(x + width, y, x, y)  # Bottom horizontal line
+    elif char == "0":
+        drawLine(x, y, x, y + height)  # Left vertical line
+        drawLine(x, y + height, x + width, y + height)  # Top horizontal line
+        drawLine(x + width, y + height, x + width, y)  # Right vertical line
+        drawLine(x + width, y, x, y)  # Bottom horizontal line
+    elif char == "C":
+        drawLine(x + width, y + height, x, y + height)  # Top horizontal line
+        drawLine(x, y + height, x, y)  # Left vertical line
+        drawLine(x, y, x + width, y)  # Bottom horizontal line
+    elif char == "P":
+        drawLine(x, y, x, y + height)  # Left vertical line
+        drawLine(x, y + height, x + width, y + height)  # Top horizontal line
+        drawLine(x + width, y + height, x + width, y + height / 2)  # Right vertical (top half)
+        drawLine(x + width, y + height / 2, x, y + height / 2)  # Middle horizontal line
+    elif char == "T":
+        drawLine(x, y + height, x + width, y + height)  # Top horizontal line
+        drawLine(x + width / 2, y, x + width / 2, y + height)  # Vertical line
 
 def mainMenu():
     # Set up a 2D orthographic projection for the menu
@@ -270,6 +332,42 @@ def mainMenu():
     draw_text_with_lines(410, 500, "1. EASY")
     draw_text_with_lines(410, 450, "2. MEDIUM")
     draw_text_with_lines(410, 400, "3. HARD")
+
+    # Restore the previous projection and modelview matrices
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+
+def GameOverScreen():
+    # Set up a 2D orthographic projection for the game over screen
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    gluOrtho2D(0, 1000, 0, 800)  # Set the 2D coordinate system
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+
+    # Draw the background
+    glColor3f(0.2, 0.2, 0.2)
+    glBegin(GL_QUADS)
+    glVertex2f(0, 0)
+    glVertex2f(1000, 0)
+    glVertex2f(1000, 800)
+    glVertex2f(0, 800)
+    glEnd()
+
+    # Draw the title "Game Over" using lines
+    glColor3f(1, 1, 1)  # Set line color to white
+    draw_text_with_lines(400, 600, "GAME OVER")
+
+    # Draw the score using lines
+    draw_text_with_lines(410, 500, f"SCORE: {score}")
+
+    draw_text_with_lines(300, 350, "PRESS R TO RESTART")
+
+    draw_text_with_lines(300, 250, "PRESS M TO MAIN MENU")
 
     # Restore the previous projection and modelview matrices
     glPopMatrix()
@@ -800,6 +898,10 @@ def Collision():
 
                 if snakeLength < 0:
                     gameOver = True
+                    Easy = False
+                    Medium = False
+                    Hard = False
+                    glutPostRedisplay()
                     return
 
                 # Decrease the snake length
@@ -816,6 +918,10 @@ def Collision():
             # Game over only if not in cheat mode
             if not cheatModeActive:
                 gameOver = True
+                Easy = False
+                Medium = False
+                Hard = False
+                glutPostRedisplay()
                 return
     
     # Wall collision
@@ -827,6 +933,10 @@ def Collision():
             # Game over only if not in cheat mode
             if not cheatModeActive:
                 gameOver = True
+                Easy = False
+                Medium = False
+                Hard = False
+                glutPostRedisplay()
                 return
     
     # Portal collision
@@ -1525,8 +1635,16 @@ def mouseListener(button, state, x, y):
         firstPerson = not firstPerson
 
 def keyboardListener(key, x, y):
-    global mainMenu, Easy, Medium, Hard, snakeAngle, gameOver, gamePaused
+    global Menu, Easy, Medium, Hard, snakeAngle, gameOver, gamePaused
     global cheatModeActive, cheatModeStartTime, cheatBarProgress
+
+    # Move to main menu (M key)
+    if key == b'm':
+        Menu = True
+        Easy = False
+        Medium = False
+        Hard = False
+        resetGame()
 
     # Pause game (P key)
     if key == b'p':
@@ -1564,22 +1682,22 @@ def keyboardListener(key, x, y):
         if snakeAngle != 90:
             snakeAngle = 270
     
-    if key == b'1':
-        mainMenu = False
+    if key == b'1' and Menu:
+        Menu = False
         Easy = True
         Medium = False
         Hard = False
         resetGame()
     
-    if key == b'2':
-        mainMenu = False
+    if key == b'2'and Menu:
+        Menu = False
         Easy = False
         Medium = True
         Hard = False
         resetGame()
     
-    if key == b'3':
-        mainMenu = False
+    if key == b'3'and Menu:
+        Menu = False
         Easy = False
         Medium = False
         Hard = True
@@ -1696,14 +1814,18 @@ def idle():
     glutPostRedisplay()
 
 def showScreen():
-    global snakeBody
+    global snakeBody, wallList
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     glViewport(0, 0, 1000, 800)
     setupCamera()
 
-    if mainMenu:
+    if gameOver:
+        GameOverScreen()
+        glutSwapBuffers()
+        return
+    elif Menu:
         mainMenu()
         foodSpawn()
     elif Easy:
@@ -1725,7 +1847,6 @@ def showScreen():
         snakeX, snakeY, snakeZ = snakeBody[0]
         if snakeX == 0 and snakeY == 0:
             snakeBody[0] = [200, 400, 0]
-
     
     if Easy or Medium or Hard:
         # Draw the snake
@@ -1763,11 +1884,6 @@ def showScreen():
 
         # Draw cheat mode bar
         drawCheatBar()
-
-        # Show game over message if game is over
-        if gameOver:
-            draw_text(400, 400, "GAME OVER")
-            draw_text(350, 350, "Press R to Restart")
 
     glutSwapBuffers()
 
