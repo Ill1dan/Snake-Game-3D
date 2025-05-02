@@ -753,6 +753,17 @@ def Collision():
                 gameOver = True
                 return
     
+    # Wall collision
+    for wall in WallList:
+        wall_x, wall_y, wall_z, width, height = wall
+        head_x, head_y, head_z = snakeBody[0]
+
+        if (wall_x - width / 2 < head_x < wall_x + width / 2) and (wall_y - height / 2 < head_y < wall_y + height / 2):
+            # Game over only if not in cheat mode
+            if not cheatModeActive:
+                gameOver = True
+                return
+    
     # Portal collision
     if len(portalList) >= 2:
         portal1 = portalList[0]
