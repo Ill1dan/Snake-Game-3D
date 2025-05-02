@@ -60,6 +60,9 @@ cheatModeStartTime = 0
 cheatBarProgress = 0
 cheatBarFull = 20  # 20 points to fill the bar
 
+# Shell variables
+shellList = []
+
 def midPointLine(x0, y0, x1, y1):
     dx = x1 - x0
     dy = y1 - y0
@@ -387,8 +390,8 @@ def snakeForwardMovement():
     current_speed = calculatedSpeed * 2 if cheatModeActive else calculatedSpeed
 
     # Move the head
-    snakeBody[0][0] -= current_speed * math.sin(math.radians(-snakeAngle))
-    snakeBody[0][1] -= current_speed * math.cos(math.radians(snakeAngle))
+    snakeBody[0][0] -= current_speed * math.sin(math.radians(-snakeAngle)) / 5
+    snakeBody[0][1] -= current_speed * math.cos(math.radians(snakeAngle)) / 5
 
     if snakeBody[0][0] < min_x:
         snakeBody[0][0] = min_x
@@ -479,6 +482,13 @@ def foodSpawn(totalFood=1):
                     valid_position = False
                     break
             
+            # Check if it's too close to shells
+            for shell in shellList:
+                shell_x, shell_y, shell_z = shell
+                if math.sqrt((x - shell_x) ** 2 + (y - shell_y) ** 2) < 80:
+                    valid_position = False
+                    break
+            
             if not valid_position:
                 x = random.randint(int(min_x), int(max_x))
                 y = random.randint(int(min_y), int(max_y))
@@ -537,6 +547,13 @@ def foodSpawnBig():
             if math.sqrt((x - portal_x) ** 2 + (y - portal_y) ** 2) < 80:
                 valid_position = False
                 break
+        
+        # Check if it's too close to shells
+        for shell in shellList:
+            shell_x, shell_y, shell_z = shell
+            if math.sqrt((x - shell_x) ** 2 + (y - shell_y) ** 2) < 80:
+                valid_position = False
+                break
             
         if not valid_position:
             x = random.randint(int(min_x), int(max_x))
@@ -593,6 +610,13 @@ def foodSpawnPoison():
         for portal in portalList:
             portal_x, portal_y, portal_z = portal
             if math.sqrt((x - portal_x) ** 2 + (y - portal_y) ** 2) < 80:
+                valid_position = False
+                break
+        
+        # Check if it's too close to shells
+        for shell in shellList:
+            shell_x, shell_y, shell_z = shell
+            if math.sqrt((x - shell_x) ** 2 + (y - shell_y) ** 2) < 80:
                 valid_position = False
                 break
             
@@ -739,6 +763,21 @@ def Collision():
             
             # Remove portals after use
             portalList = []
+    
+    # Shell collision
+    for shell in shellList:
+        shell_x, shell_y, shell_z = shell
+        head_x, head_y, head_z = snakeBody[0]
+
+        if math.sqrt((shell_x - head_x) ** 2 + (shell_y - head_y) ** 2) < 50:
+            # Reduce snake length
+            if snakeLength > 5:
+                snakeLength -= 5
+                for _ in range(5):
+                    snakeBody.pop()
+                    
+                # Remove the shell
+                shellList.remove(shell)
 
 def foodPulseWave():
     global foodPulseTime, foodPulse
@@ -844,6 +883,93 @@ def drawPortal(x, y, z):
 
     glPopMatrix()
 
+def drawShell(x, y, z):
+    glPushMatrix()
+    
+    # Portal (purple circle)
+    glColor3f(0.8, 0.2, 0.2)
+    glTranslatef(x, y, z + 15)
+    
+    # Create a circle
+    num_segments = 100
+    radius = 60
+    glBegin(GL_TRIANGLE_FAN)
+    for i in range(num_segments + 1):
+        theta = 2.0 * math.pi * float(i) / float(num_segments)
+        dx = radius * math.cos(theta)
+        dy = radius * math.sin(theta)
+        glVertex3f(dx, dy, 0)
+    glEnd()
+    
+    # Add inner circle for portal effect
+    glColor3f(0.9, 0.4, 0.4)
+    radius_inner = 30
+    glBegin(GL_TRIANGLE_FAN)
+    for i in range(num_segments + 1):
+        theta = 2.0 * math.pi * float(i) / float(num_segments)
+        dx = radius_inner * math.cos(theta)
+        dy = radius_inner * math.sin(theta)
+        glVertex3f(dx, dy, 1)
+    glEnd()
+
+    glPopMatrix()
+
+def shellSpawn():
+    global shellList
+
+    # Boundaries
+    min_x = -COLS * GRID_LENGTH / 2 + 50
+    max_x = COLS * GRID_LENGTH / 2 - 50
+    min_y = -ROWS * GRID_LENGTH / 2 + 50
+    max_y = ROWS * GRID_LENGTH / 2 - 50
+    
+    x = random.randint(int(min_x), int(max_x))
+    y = random.randint(int(min_y), int(max_y))
+    z = 0
+    
+    # Ensure shells don't spawn on the snake or other game objects
+    valid_position = False
+    while not valid_position:
+        valid_position = True
+        
+        # Check if it's too close to the snake
+        for segment in snakeBody:
+            segment_x, segment_y, segment_z = segment
+            if math.sqrt((x - segment_x) ** 2 + (y - segment_y) ** 2) < 60:
+                valid_position = False
+                break
+        
+        # Check if it's too close to foods
+        for food in foodList + bigFoodList + poisonFoodList:
+            if len(food) == 4:
+                food_x, food_y, food_z, _ = food
+            else:
+                food_x, food_y, food_z = food
+                
+            if math.sqrt((x - food_x) ** 2 + (y - food_y) ** 2) < 80:
+                valid_position = False
+                break
+                
+        # Check if it's too close to other obstacles
+        for obstacle in obstacleList:
+            obs_x, obs_y, obs_z = obstacle
+            if math.sqrt((x - obs_x) ** 2 + (y - obs_y) ** 2) < 80:
+                valid_position = False
+                break
+        
+        # Check if it's too close to portals
+        for portal in portalList:
+            portal_x, portal_y, portal_z = portal
+            if math.sqrt((x - portal_x) ** 2 + (y - portal_y) ** 2) < 80:
+                valid_position = False
+                break
+
+        if not valid_position:
+            x = random.randint(int(min_x), int(max_x))
+            y = random.randint(int(min_y), int(max_y))
+    
+    shellList.append((x, y, z))
+
 def obstacleSpawn():
     global obstacleList
 
@@ -892,6 +1018,13 @@ def obstacleSpawn():
         for portal in portalList:
             portal_x, portal_y, portal_z = portal
             if math.sqrt((x - portal_x) ** 2 + (y - portal_y) ** 2) < 80:
+                valid_position = False
+                break
+
+        # Check if it's too close to shells
+        for shell in shellList:
+            shell_x, shell_y, shell_z = shell
+            if math.sqrt((x - shell_x) ** 2 + (y - shell_y) ** 2) < 80:
                 valid_position = False
                 break
         
@@ -947,6 +1080,13 @@ def portalSpawn():
                 valid_position = False
                 break
         
+        # Check if it's too close to shells
+        for shell in shellList:
+            shell_x, shell_y, shell_z = shell
+            if math.sqrt((x1 - shell_x) ** 2 + (y1 - shell_y) ** 2) < 80:
+                valid_position = False
+                break
+        
         if not valid_position:
             x1 = random.randint(int(min_x), int(max_x))
             y1 = random.randint(int(min_y), int(max_y))
@@ -988,6 +1128,13 @@ def portalSpawn():
         # Check if it's too close to first portal
         if math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) < 200:  # Minimum distance between portals
             valid_position = False
+        
+        # Check if it's too close to shells
+        for shell in shellList:
+            shell_x, shell_y, shell_z = shell
+            if math.sqrt((x2 - shell_x) ** 2 + (y2- shell_y) ** 2) < 80:
+                valid_position = False
+                break
         
         if not valid_position:
             x2 = random.randint(int(min_x), int(max_x))
@@ -1241,6 +1388,10 @@ def idle():
     if len(portalList) == 0 and current_time - portalTimer > portalSpawnInterval:
         portalSpawn()
         portalTimer = current_time
+    
+    # Spawn shell every 30 points
+    if score % 30 == 0 and score > 0 and len(shellList) == 0:
+        shellSpawn()
 
     glutPostRedisplay()
 
@@ -1266,6 +1417,10 @@ def showScreen():
         for poisonFood in poisonFoodList:
             poisonFood_x, poisonFood_y, poisonFood_z, _ = poisonFood
             drawPoisonFood(poisonFood_x, poisonFood_y, poisonFood_z)
+        
+        # Draw shells
+        for shell in shellList:
+            drawShell(shell[0], shell[1], shell[2])
         
         # Draw obstacles
         for obstacle in obstacleList:
